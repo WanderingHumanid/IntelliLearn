@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.title }} - IntelliLearn Forum{% endblock %}
+
+{% block content %}
+<section class="py-12">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- Topic Header -->
+            <div class="glass-effect rounded-2xl p-6 mb-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold mb-2">{{ topic.title }}</h1>
+                        <div class="flex items-center text-gray-400 text-sm">
+                            <span>Posted by {{ topic.author }}</span>
+                            <span class="mx-2">•</span>
+                            <span>{{ topic.created_at.split(' ')[0] if topic.created_at else '' }}</span>
+                            <span class="mx-2">•</span>
+                            <span>{{ topic.views }} views</span>
+                            <span class="mx-2">•</span>
+                            <span>{{ topic.replies }} replies</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <button id="shareBtn" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white mr-3">
+                            <i class="fas fa-share-alt mr-2"></i> Share
+                        </button>
+                        {% if topic.author == user.username %}
+                        <button id="editBtn" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg text-white">
+                            <i class="fas fa-edit mr-2"></i> Edit
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Topic Content -->
+            <div class="glass-effect rounded-2xl p-6 mb-6">
+                <div class="prose prose-invert max-w-none">
+                    {{ topic.content | safe }}
+                </div>
+            </div>
+            
+            <!-- Replies -->
+            <div class="glass-effect rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6">Replies</h2>
+                
+                {% if replies %}
+                <div class="space-y-6">
+                    {% for reply in replies %}
+                    <div class="bg-gray-800/50 rounded-xl p-6">
+                        <div class="flex items-start mb-4">
+                            <div class="w-10 h-10 rounded-full gradient-primary flex items-center justify-center mr-4">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="font-semibold">{{ reply.author }}</h3>
+                                        <p class="text-gray-400 text-sm">{{ reply.created_at.split(' ')[0] if reply.created_at else '' }}</p>
+                                    </div>
+                                    {% if reply.author == user.username %}
+                                    <button class="text-gray-400 hover:text-white" onclick="editReply({{ reply.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div class="prose prose-invert max-w-none mt-4">
+                                    {{ reply.content | safe }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
+                            <div class="flex items-center space-x-4">
+                                <button class="text-gray-400 hover:text-white flex items-center">
+                                    <i class="fas fa-thumbs-up mr-2"></i>
+                                    <span>{{ reply.likes }}</span>
+                                </button>
+                                <button class="text-gray-400 hover:text-white flex items-center">
+                                    <i class="fas fa-thumbs-down mr-2"></i>
+                                    <span>{{ reply.dislikes }}</span>
+                                </button>
+                            </div>
+                            <button class="text-primary-400 hover:text-primary-300 text-sm" onclick="showReplyForm({{ reply.id }})">
+                                Reply
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <div class="mb-4">
+                        <i class="fas fa-comments text-4xl text-gray-600"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">No replies yet</h3>
+                    <p class="text-gray-400">Be the first to reply to this topic!</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Reply Form -->
+            <div class="glass-effect rounded-2xl p-6">
+                <h2 class="text-2xl font-bold mb-6">Post a Reply</h2>
+                
+                <form method="POST" action="/forum/topic/{{ topic.id }}/reply">
+                    <div class="mb-6">
+                        <textarea 
+                            name="content" 
+                            class="w-full bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:border-primary-500 focus:outline-none"
+                            rows="6"
+                            placeholder="Write your reply..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="notify" name="notify" class="h-5 w-5 rounded text-primary-600 focus:ring-primary-500 focus:ring-offset-gray-800">
+                            <label for="notify" class="ml-2 text-gray-300">Notify me when someone replies</label>
+                        </div>
+                        <button type="submit" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition">
+                            Post Reply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Share Modal -->
+<div id="shareModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="glass-effect rounded-2xl p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">Share Topic</h3>
+            <button onclick="closeShareModal()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <button class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white flex items-center justify-center">
+                <i class="fab fa-facebook mr-2"></i> Share on Facebook
+            </button>
+            <button class="w-full px-4 py-3 bg-blue-400 hover:bg-blue-500 rounded-xl text-white flex items-center justify-center">
+                <i class="fab fa-twitter mr-2"></i> Share on Twitter
+            </button>
+            <button class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 rounded-xl text-white flex items-center justify-center">
+                <i class="fab fa-whatsapp mr-2"></i> Share on WhatsApp
+            </button>
+            <div class="flex items-center">
+                <input type="text" value="{{ request.url }}" class="flex-1 bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:border-primary-500 focus:outline-none" readonly>
+                <button onclick="copyLink()" class="ml-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl text-white">
+                    Copy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Share functionality
+    const shareBtn = document.getElementById('shareBtn');
+    const shareModal = document.getElementById('shareModal');
+    
+    shareBtn.addEventListener('click', function() {
+        shareModal.classList.remove('hidden');
+        shareModal.classList.add('flex');
+    });
+    
+    function closeShareModal() {
+        shareModal.classList.add('hidden');
+        shareModal.classList.remove('flex');
+    }
+    
+    function copyLink() {
+        const linkInput = shareModal.querySelector('input');
+        linkInput.select();
+        document.execCommand('copy');
+        showNotification('Link copied to clipboard!', 'success');
+    }
+    
+    // Edit functionality
+    const editBtn = document.getElementById('editBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', function() {
+            window.location.href = '/forum/topic/{{ topic.id }}/edit';
+        });
+    }
+    
+    // Reply functionality
+    function showReplyForm(replyId) {
+        const replyForm = document.querySelector('form');
+        const textarea = replyForm.querySelector('textarea');
+        textarea.value = `@{{ reply.author }} `;
+        textarea.focus();
+    }
+    
+    function editReply(replyId) {
+        window.location.href = `/forum/reply/${replyId}/edit`;
+    }
+</script>
+{% endblock %} 

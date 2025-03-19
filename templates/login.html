@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Log In - IntelliLearn{% endblock %}
+
+{% block content %}
+<section class="py-16 min-h-screen flex items-center">
+    <div class="container mx-auto px-4">
+        <div class="max-w-md mx-auto">
+            <div class="glass-effect rounded-2xl p-8 shadow-xl border border-gray-700">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold mb-2">Welcome Back</h1>
+                    <p class="text-gray-400">Log in to continue your learning journey</p>
+                </div>
+                
+                {% if error %}
+                <div class="bg-red-900/50 border border-red-800 text-red-200 px-4 py-3 rounded-xl mb-6">
+                    <p>{{ error }}</p>
+                </div>
+                {% endif %}
+                
+                <form method="POST" action="/login">
+                    <div class="mb-6">
+                        <label for="username" class="block text-gray-300 mb-2">Username</label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="w-full bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:border-primary-500 focus:outline-none"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-6">
+                        <div class="flex justify-between mb-2">
+                            <label for="password" class="text-gray-300">Password</label>
+                            <a href="#" class="text-primary-400 hover:text-primary-300 text-sm">Forgot password?</a>
+                        </div>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="w-full bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:border-primary-500 focus:outline-none"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="h-5 w-5 rounded text-primary-600 focus:ring-primary-500 focus:ring-offset-gray-800">
+                            <span class="ml-2 text-gray-300">Remember me</span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition">
+                        Log In
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-gray-400">
+                        Don't have an account? 
+                        <a href="/register" class="text-primary-400 hover:text-primary-300">Sign up now</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

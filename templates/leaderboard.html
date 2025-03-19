@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard - IntelliLearn{% endblock %}
+
+{% block content %}
+<section class="py-12">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="glass-effect rounded-2xl mb-10 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-900 to-gray-900 px-6 py-10 relative">
+                <!-- Background elements -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-primary-600 rounded-full filter blur-3xl opacity-10"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-accent-600 rounded-full filter blur-3xl opacity-10"></div>
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2 flex items-center">
+                            <i class="fas fa-trophy text-yellow-500 mr-3"></i>
+                            Leaderboard
+                        </h1>
+                        <p class="text-gray-300 max-w-xl">Top performers in the IntelliLearn community. Will you make it to the top?</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <!-- Leaderboard Stats -->
+                        <div class="py-2 px-4 rounded-xl glass-effect">
+                            <div class="flex items-center">
+                                <div class="mr-5">
+                                    <p class="text-gray-400 text-sm">Total Users</p>
+                                    <p class="text-2xl font-bold">{{ users|length }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-400 text-sm">Updated</p>
+                                    <p class="text-lg">Today</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Leaderboard Table -->
+        <div class="glass-effect rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-800/70 border-b border-gray-700">
+                            <th class="py-4 px-6 text-left">Rank</th>
+                            <th class="py-4 px-6 text-left">User</th>
+                            <th class="py-4 px-6 text-center">Level</th>
+                            <th class="py-4 px-6 text-center">Points</th>
+                            <th class="py-4 px-6 text-center">Streak</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr class="border-b border-gray-800 hover:bg-gray-800/50 transition {% if loop.index <= 3 %}top-performer{% endif %}">
+                            <td class="py-4 px-6">
+                                {% if loop.index == 1 %}
+                                    <div class="flex justify-center items-center h-8 w-8 rounded-full bg-yellow-500/20 text-yellow-500">
+                                        <i class="fas fa-crown"></i>
+                                    </div>
+                                {% elif loop.index == 2 %}
+                                    <div class="flex justify-center items-center h-8 w-8 rounded-full bg-gray-400/20 text-gray-400">
+                                        <i class="fas fa-medal"></i>
+                                    </div>
+                                {% elif loop.index == 3 %}
+                                    <div class="flex justify-center items-center h-8 w-8 rounded-full bg-amber-600/20 text-amber-600">
+                                        <i class="fas fa-medal"></i>
+                                    </div>
+                                {% else %}
+                                    <span class="text-gray-500 font-mono">{{ loop.index }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6 font-semibold">{{ user.username }}</td>
+                            <td class="py-4 px-6 text-center">
+                                <div class="flex justify-center">
+                                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-primary-600/20">
+                                        <span class="text-primary-400">{{ user.level }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6 text-center font-mono">
+                                <span class="{% if loop.index <= 3 %}text-accent-400{% else %}text-gray-300{% endif %}">{{ user.points }}</span>
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                <div class="flex items-center justify-center gap-1">
+                                    <i class="fas fa-fire text-orange-500"></i>
+                                    <span>{{ user.streak }} days</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Motivational Message -->
+        <div class="text-center mt-8">
+            <p class="text-gray-400">Keep learning and engaging to climb the ranks!</p>
+            <a href="/ai-chat" class="mt-4 inline-flex items-center text-primary-400 hover:text-primary-300">
+                <i class="fas fa-brain mr-2"></i>
+                <span>Start Learning with AI</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<style>
+    .top-performer {
+        background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+    }
+</style>
+{% endblock %} 

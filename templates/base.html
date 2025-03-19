@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IntelliLearn - AI Assisted Learning Platform{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#6366f1',
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                        dark: {
+                            DEFAULT: '#1f2937',
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            200: '#e5e7eb',
+                            300: '#d1d5db',
+                            400: '#9ca3af',
+                            500: '#6b7280',
+                            600: '#4b5563',
+                            700: '#374151',
+                            800: '#1f2937',
+                            900: '#111827',
+                            950: '#030712',
+                        },
+                        accent: {
+                            DEFAULT: '#fb7185',
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                            950: '#4c0519',
+                        },
+                    },
+                    borderRadius: {
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom styles -->
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            --secondary-gradient: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+        }
+        
+        .gradient-primary {
+            background: var(--primary-gradient);
+        }
+        
+        .gradient-secondary {
+            background: var(--secondary-gradient);
+        }
+        
+        .glass-effect {
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .primary-text-gradient {
+            background-image: var(--primary-gradient);
+        }
+        
+        .secondary-text-gradient {
+            background-image: var(--secondary-gradient);
+        }
+        
+        /* For custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4338ca;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #312e81;
+        }
+    </style>
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
+    <!-- Navigation -->
+    <nav class="glass-effect sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <a href="/" class="text-2xl font-bold flex items-center">
+                    <i class="fas fa-brain text-primary-500 mr-2"></i>
+                    <span class="primary-text-gradient">Intelli</span><span class="secondary-text-gradient">Learn</span>
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex space-x-6 items-center">
+                    <a href="/" class="text-gray-300 hover:text-white transition">Home</a>
+                    <a href="/ai-chat" class="text-gray-300 hover:text-white transition">AI Chat</a>
+                    <a href="/forum" class="text-gray-300 hover:text-white transition">Forum</a>
+                    <a href="/roadmap" class="text-gray-300 hover:text-white transition">Learning Roadmap</a>
+                    <a href="/leaderboard" class="text-gray-300 hover:text-white transition">Leaderboard</a>
+                    
+                    {% if session.get('user_id') %}
+                        <div class="relative group">
+                            <button class="flex items-center space-x-1 text-gray-300 hover:text-white transition">
+                                <span>{{ session.get('username') }}</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-48 rounded-xl overflow-hidden glass-effect shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <i class="fas fa-user mr-2"></i> Profile
+                                </a>
+                                <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                                </a>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Log Out
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="/login" class="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 transition text-white">
+                            Log In
+                        </a>
+                        <a href="/register" class="px-4 py-2 rounded-xl border border-primary-600 text-primary-500 hover:bg-primary-600 hover:text-white transition">
+                            Sign Up
+                        </a>
+                    {% endif %}
+                </div>
+                
+                <!-- Mobile Navigation Toggle -->
+                <button id="mobile-menu-button" class="md:hidden text-gray-300 hover:text-white focus:outline-none">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile Navigation Menu -->
+            <div id="mobile-menu" class="md:hidden hidden mt-3 pb-2">
+                <a href="/" class="block py-2 text-gray-300 hover:text-white transition">Home</a>
+                <a href="/ai-chat" class="block py-2 text-gray-300 hover:text-white transition">AI Chat</a>
+                <a href="/forum" class="block py-2 text-gray-300 hover:text-white transition">Forum</a>
+                <a href="/roadmap" class="block py-2 text-gray-300 hover:text-white transition">Learning Roadmap</a>
+                <a href="/leaderboard" class="block py-2 text-gray-300 hover:text-white transition">Leaderboard</a>
+                
+                {% if session.get('user_id') %}
+                    <a href="/profile" class="block py-2 text-gray-300 hover:text-white transition">Profile</a>
+                    <a href="/dashboard" class="block py-2 text-gray-300 hover:text-white transition">Dashboard</a>
+                    <a href="/logout" class="block py-2 text-gray-300 hover:text-white transition">Log Out</a>
+                {% else %}
+                    <div class="flex space-x-4 mt-2">
+                        <a href="/login" class="flex-1 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 transition text-white text-center">
+                            Log In
+                        </a>
+                        <a href="/register" class="flex-1 px-4 py-2 rounded-xl border border-primary-600 text-primary-500 hover:bg-primary-600 hover:text-white transition text-center">
+                            Sign Up
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="glass-effect mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4 primary-text-gradient">IntelliLearn</h3>
+                    <p class="text-gray-400">
+                        An AI-powered learning platform designed to help students excel in their educational journey.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="/" class="text-gray-400 hover:text-white transition">Home</a></li>
+                        <li><a href="/ai-chat" class="text-gray-400 hover:text-white transition">AI Chat</a></li>
+                        <li><a href="/forum" class="text-gray-400 hover:text-white transition">Community Forum</a></li>
+                        <li><a href="/roadmap" class="text-gray-400 hover:text-white transition">Learning Roadmap</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Connect With Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+                <p>&copy; 2025 IntelliLearn. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!mobileMenuButton.contains(event.target) && !mobileMenu.contains(event.target)) {
+                mobileMenu.classList.add('hidden');
+            }
+        });
+        
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.classList.add(
+                'fixed', 'top-5', 'right-5', 'max-w-sm', 'p-4', 
+                'rounded-xl', 'glass-effect', 'shadow-lg', 'z-50',
+                'transform', 'transition-all', 'duration-500',
+                'translate-x-full', 'opacity-0'
+            );
+            
+            if (type === 'success') {
+                notification.classList.add('border-l-4', 'border-green-500');
+            } else if (type === 'error') {
+                notification.classList.add('border-l-4', 'border-red-500');
+            } else if (type === 'info') {
+                notification.classList.add('border-l-4', 'border-blue-500');
+            } else if (type === 'achievement') {
+                notification.classList.add('border-l-4', 'border-yellow-500');
+            }
+            
+            let icon;
+            if (type === 'success') {
+                icon = '<i class="fas fa-check-circle text-green-500 mr-3 text-xl"></i>';
+            } else if (type === 'error') {
+                icon = '<i class="fas fa-exclamation-circle text-red-500 mr-3 text-xl"></i>';
+            } else if (type === 'info') {
+                icon = '<i class="fas fa-info-circle text-blue-500 mr-3 text-xl"></i>';
+            } else if (type === 'achievement') {
+                icon = '<i class="fas fa-trophy text-yellow-500 mr-3 text-xl"></i>';
+            }
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    ${icon}
+                    <div>
+                        <h4 class="font-semibold mb-1">${type === 'achievement' ? 'Achievement Unlocked!' : type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+                        <p class="text-sm text-gray-300">${message}</p>
+                    </div>
+                    <button class="ml-auto text-gray-400 hover:text-white focus:outline-none" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full', 'opacity-0');
+            }, 10);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 500);
+            }, 5000);
+        }
+        
+        // For achievements
+        window.addEventListener('achievement', function(e) {
+            const achievement = e.detail;
+            showNotification(`${achievement.name}: ${achievement.description} (+${achievement.points} points)`, 'achievement');
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 
