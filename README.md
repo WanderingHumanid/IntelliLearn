@@ -11,6 +11,14 @@ A personalized learning platform with AI-powered roadmaps, interactive forums, a
 - **Quizzes**: Test your knowledge with AI-generated quizzes
 - **Leaderboards**: Track your progress against other learners
 
+ **Showcase:**
+ - Home Page:
+![HomePage](images/homepage.gif)
+- Dashboard:
+![Dashboard](images/dashboard.gif)
+- Chatbot:
+![Chatbot](images/chatbot.gif)
+
 ## Technical Overview
 
 This application is built with:
@@ -30,7 +38,7 @@ This application is built with:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/learning-roadmap-platform.git
+   git clone https://github.com/WanderingHumanid/IntelliLearn.git
    cd learning-roadmap-platform
    ```
 
@@ -94,32 +102,12 @@ The application uses a simple JSON file-based storage system located in `data/db
 - Learning roadmaps
 - Forum posts and comments
 
-## API Endpoints
-
-The application provides several API endpoints:
-
-- `/api/chat` - Interact with the AI learning assistant
-- `/api/create-roadmap` - Generate custom learning roadmaps
-- `/api/complete-topic` - Mark topics as completed and earn points
-- `/api/forum-post` - Create forum posts
-- `/api/forum-comment` - Add comments to forum posts
-- `/api/generate-quiz` - Create quizzes for specific topics
-
 ## Future Enhancements
 
 - User profile customization
 - Advanced analytics and progress tracking
-- Social features (following, direct messaging)
+- Document/Image processing through Tesseract/OCR.
+- More accessibility options in the Forum section
 - Mobile application support
 - Proper database implementation (PostgreSQL/MongoDB)
 - OAuth authentication
-
-## License
-
-[MIT License](LICENSE)
-
-## Acknowledgements
-
-- [Flask](https://flask.palletsprojects.com/)
-- [Ollama](https://ollama.ai/)
-- [LLama 3.2](https://ai.meta.com/llama/) 
