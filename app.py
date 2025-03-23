@@ -1,810 +1,406 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response, stream_with_context
+import os
 import requests
 import json
-import os
-import sqlite3
-import uuid
-from datetime import datetime
-import pytesseract
-from PIL import Image
-import io
-import base64
-import re
+import random
 import time
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-# Database setup
-def setup_database():
-    conn = sqlite3.connect('db/intelli_learn.db')
-    cursor = conn.cursor()
-    
-    # Users table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        points INTEGER DEFAULT 0,
-        level INTEGER DEFAULT 1,
-        streak INTEGER DEFAULT 0,
-        last_login TEXT,
-        created_at TEXT
-    )
-    ''')
-    
-    # AI Chats table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS chats (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        title TEXT,
-        created_at TEXT,
-        FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-    ''')
-    
-    # Chat Messages table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS chat_messages (
-        id TEXT PRIMARY KEY,
-        chat_id TEXT NOT NULL,
-        role TEXT NOT NULL,
-        content TEXT NOT NULL,
-        timestamp TEXT,
-        FOREIGN KEY (chat_id) REFERENCES chats (id)
-    )
-    ''')
-    
-    # Forum Categories table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS forum_categories (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT
-    )
-    ''')
-    
-    # Forum Topics table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS forum_topics (
-        id TEXT PRIMARY KEY,
-        category_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TEXT,
-        updated_at TEXT,
-        views INTEGER DEFAULT 0,
-        FOREIGN KEY (category_id) REFERENCES forum_categories (id),
-        FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-    ''')
-    
-    # Forum Replies table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS forum_replies (
-        id TEXT PRIMARY KEY,
-        topic_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY (topic_id) REFERENCES forum_topics (id),
-        FOREIGN KEY (user_id) REFERENCES users (id)
-    )
-    ''')
-    
-    # Achievements table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS achievements (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT,
-        points INTEGER DEFAULT 0,
-        icon TEXT
-    )
-    ''')
-    
-    # User Achievements table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS user_achievements (
-        user_id TEXT NOT NULL,
-        achievement_id TEXT NOT NULL,
-        earned_at TEXT,
-        PRIMARY KEY (user_id, achievement_id),
-        FOREIGN KEY (user_id) REFERENCES users (id),
-        FOREIGN KEY (achievement_id) REFERENCES achievements (id)
-    )
-    ''')
-    
-    # Insert default forum categories
-    cursor.execute("INSERT OR IGNORE INTO forum_categories (id, name, description) VALUES (?, ?, ?)",
-                  ('1', 'General Discussion', 'General topics related to learning and education'))
-    cursor.execute("INSERT OR IGNORE INTO forum_categories (id, name, description) VALUES (?, ?, ?)",
-                  ('2', 'AI Learning', 'Discussions about AI-assisted learning techniques'))
-    cursor.execute("INSERT OR IGNORE INTO forum_categories (id, name, description) VALUES (?, ?, ?)",
-                  ('3', 'Study Groups', 'Find and join study groups'))
-    
-    # Insert default achievements
-    cursor.execute("INSERT OR IGNORE INTO achievements (id, name, description, points, icon) VALUES (?, ?, ?, ?, ?)",
-                  ('1', 'First Chat', 'Started your first AI chat session', 10, 'chat-icon'))
-    cursor.execute("INSERT OR IGNORE INTO achievements (id, name, description, points, icon) VALUES (?, ?, ?, ?, ?)",
-                  ('2', 'Forum Novice', 'Made your first forum post', 20, 'forum-icon'))
-    cursor.execute("INSERT OR IGNORE INTO achievements (id, name, description, points, icon) VALUES (?, ?, ?, ?, ?)",
-                  ('3', '7-Day Streak', 'Logged in for 7 consecutive days', 50, 'streak-icon'))
-    
-    conn.commit()
-    conn.close()
+# Load database from file if it exists
+def load_db():
+    global users_db, roadmaps_db, forum_posts
+    try:
+        if os.path.exists('data/db.json'):
+            with open('data/db.json', 'r') as f:
+                data = json.load(f)
+                users_db = data.get('users', {})
+                roadmaps_db = data.get('roadmaps', {})
+                forum_posts = data.get('forum_posts', [])
+        else:
+            # Create directory if it doesn't exist
+            os.makedirs('data', exist_ok=True)
+            users_db = {}
+            roadmaps_db = {}
+            forum_posts = []
+    except Exception as e:
+        print(f"Error loading database: {e}")
+        users_db = {}
+        roadmaps_db = {}
+        forum_posts = []
 
-# Call database setup
-setup_database()
+# Save database to file
+def save_db():
+    try:
+        with open('data/db.json', 'w') as f:
+            json.dump({
+                'users': users_db,
+                'roadmaps': roadmaps_db,
+                'forum_posts': forum_posts
+            }, f)
+    except Exception as e:
+        print(f"Error saving database: {e}")
 
-# Helper function to get database connection
-def get_db_connection():
-    conn = sqlite3.connect('db/intelli_learn.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+# Initialize database
+load_db()
 
-# Routes
+# Ollama API endpoint
+OLLAMA_API = "http://localhost:11434/api/generate"
+
+# Register custom filters
+@app.template_filter('timestamp_format')
+def timestamp_format(timestamp):
+    """Format a Unix timestamp into a readable date"""
+    dt = datetime.datetime.fromtimestamp(timestamp)
+    return dt.strftime('%b %d, %Y - %H:%M')
+
+# Context processor to add user data to all templates
+@app.context_processor
+def inject_user():
+    user_data = None
+    if 'username' in session and session['username'] in users_db:
+        user_data = users_db[session['username']]
+    return dict(user=user_data)
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
-def index():
+def home():
+    if 'username' in session:
+        # If user is logged in, redirect to dashboard
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form['username']
+        password = request.form['password']
         
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        conn.close()
-        
-        if user and user['password'] == password:  # In production, use proper password hashing
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            
-            # Update streak and last login
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            conn = get_db_connection()
-            conn.execute('UPDATE users SET last_login = ?, streak = streak + 1 WHERE id = ?', 
-                        (now, user['id']))
-            conn.commit()
-            conn.close()
-            
+        if username in users_db and users_db[username]['password'] == password:
+            session['username'] = username
             return redirect(url_for('dashboard'))
-        
         return render_template('login.html', error='Invalid credentials')
     
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        email = request.form.get('email')
+        username = request.form['username']
+        password = request.form['password']
         
-        conn = get_db_connection()
-        existing_user = conn.execute('SELECT * FROM users WHERE username = ? OR email = ?', 
-                                   (username, email)).fetchone()
+        if username in users_db:
+            return render_template('signup.html', error='Username already exists')
         
-        if existing_user:
-            conn.close()
-            return render_template('register.html', error='Username or email already exists')
+        users_db[username] = {
+            'password': password,
+            'points': 0,
+            'level': 1,
+            'streak': 0,
+            'roadmaps': [],
+            'completed_topics': []
+        }
         
-        user_id = str(uuid.uuid4())
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Save the updated database
+        save_db()
         
-        conn.execute('INSERT INTO users (id, username, password, email, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?)',
-                    (user_id, username, password, email, now, now))
-        conn.commit()
-        conn.close()
-        
-        return redirect(url_for('login'))
+        session['username'] = username
+        return redirect(url_for('dashboard'))
     
-    return render_template('register.html')
+    return render_template('signup.html')
 
 @app.route('/logout')
 def logout():
-    session.clear()
-    return redirect(url_for('index'))
+    session.pop('username', None)
+    return redirect(url_for('home'))
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    username = session['username']
+    user_data = users_db[username]
     
-    conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-    chats = conn.execute('SELECT * FROM chats WHERE user_id = ? ORDER BY created_at DESC', 
-                       (session['user_id'],)).fetchall()
-    achievements = conn.execute('''
-        SELECT a.* FROM achievements a
-        JOIN user_achievements ua ON a.id = ua.achievement_id
-        WHERE ua.user_id = ?
-    ''', (session['user_id'],)).fetchall()
-    conn.close()
+    user_roadmaps = []
+    for roadmap_id in user_data['roadmaps']:
+        if roadmap_id in roadmaps_db:
+            user_roadmaps.append(roadmaps_db[roadmap_id])
     
-    return render_template('dashboard.html', user=user, chats=chats, achievements=achievements)
+    return render_template('dashboard.html', 
+                          user=user_data, 
+                          roadmaps=user_roadmaps)
 
 @app.route('/ai-chat')
+@login_required
 def ai_chat():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    chat_id = request.args.get('id')
-    chat = None
-    messages = []
-    
-    conn = get_db_connection()
-    # Get all user chats for the sidebar
-    chats = conn.execute('SELECT * FROM chats WHERE user_id = ? ORDER BY created_at DESC', 
-                       (session['user_id'],)).fetchall()
-    
-    if chat_id:
-        chat = conn.execute('SELECT * FROM chats WHERE id = ? AND user_id = ?', 
-                          (chat_id, session['user_id'])).fetchone()
-        
-        if chat:
-            messages = conn.execute('SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY timestamp',
-                                  (chat_id,)).fetchall()
-    conn.close()
-    
-    return render_template('ai_chat.html', chat=chat, messages=messages, chats=chats)
+    return render_template('ai_chat.html')
 
-@app.route('/api/chats/new', methods=['POST'])
-def create_new_chat():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    chat_id = str(uuid.uuid4())
-    
-    # Get the initial message as title (or use default)
-    initial_message = request.json.get('message', '')
-    if initial_message:
-        # Generate a summary title from the initial message
-        title = generate_chat_title(initial_message)
-    else:
-        title = "New Chat"
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def api_chat():
+    def generate():
+        username = session['username']
+        message = request.json.get('message', '')
         
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    conn = get_db_connection()
-    conn.execute('INSERT INTO chats (id, user_id, title, created_at) VALUES (?, ?, ?, ?)',
-                (chat_id, session['user_id'], title, now))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({
-        'chat_id': chat_id,
-        'title': title,
-        'created_at': now
-    })
-
-# Function to generate a chat title using the initial message
-def generate_chat_title(message):
-    try:
-        # Try to generate a summary using the local AI model
-        prompt = f"Summarize the following user message into a brief chat title (4-6 words max):\n\n{message}"
+        # Prepare context about the user
+        user_data = users_db[username]
+        context = f"You are an AI learning assistant for {username}. Their current level is {user_data['level']} with {user_data['points']} points. "
         
+        if user_data['roadmaps']:
+            context += f"They are working on the following roadmaps: {', '.join([roadmaps_db[r]['title'] for r in user_data['roadmaps'] if r in roadmaps_db])}. "
+        
+        if user_data['completed_topics']:
+            context += f"They have completed these topics: {', '.join(user_data['completed_topics'])}."
+        
+        # Prepare prompt for Ollama
+        prompt = f"{context}\n\nUser: {message}\n\nAssistant:"
+        
+        # Stream response from Ollama
         response = requests.post(
-            'http://localhost:11434/api/chat',
-            json={
-                'model': 'llama3.2',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'stream': False
-            }
+            OLLAMA_API,
+            json={"model": "llama3.2", "prompt": prompt, "stream": True},
+            stream=True
         )
         
-        if response.status_code == 200:
-            title = response.json().get('message', {}).get('content', '')
-            
-            # Clean up and limit the title length
-            title = title.strip().strip('"').replace('\n', ' ')
-            title = re.sub(r'Chat Title: |Title: |Summary: ', '', title, flags=re.IGNORECASE)
-            
-            # Limit to 50 characters
-            if len(title) > 50:
-                title = title[:47] + "..."
-                
-            if title:
-                return title
-    
-    except Exception as e:
-        print(f"Error generating chat title: {str(e)}")
-    
-    # Fallback: use a truncated version of the message
-    if len(message) > 50:
-        return message[:47] + "..."
-    return message
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line)
+                if 'response' in data:
+                    yield data['response']
+        
+    return Response(stream_with_context(generate()), content_type='text/plain')
 
-@app.route('/api/chats/<chat_id>/messages', methods=['GET'])
-def get_chat_messages(chat_id):
-    if 'user_id' not in session:
-        return jsonify({'error': 'Not logged in'}), 401
-    
-    conn = get_db_connection()
-    chat = conn.execute('SELECT * FROM chats WHERE id = ? AND user_id = ?',
-                      (chat_id, session['user_id'])).fetchone()
-    
-    if not chat:
-        conn.close()
-        return jsonify({'error': 'Chat not found'}), 404
-    
-    messages = conn.execute('SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY timestamp',
-                          (chat_id,)).fetchall()
-    conn.close()
-    
-    return jsonify({'messages': [dict(m) for m in messages]})
+@app.route('/roadmap-creator')
+@login_required
+def roadmap_creator():
+    return render_template('roadmap_creator.html')
 
-@socketio.on('send_message')
-def handle_message(data):
-    if 'user_id' not in session:
-        emit('error', {'message': 'Not logged in'})
-        return
+@app.route('/api/create-roadmap', methods=['POST'])
+@login_required
+def api_create_roadmap():
+    username = session['username']
+    topic = request.json.get('topic', '')
     
-    chat_id = data.get('chat_id', 'new')
-    message = data.get('message')
+    # Generate roadmap using Ollama
+    prompt = f"Create a detailed learning roadmap for {topic}. Include main topics, subtopics, resources, and estimated time to complete each section. Format as JSON with the following structure: {{\"title\": \"{topic} Learning Path\", \"description\": \"...\", \"topics\": [{{\"name\": \"Topic 1\", \"description\": \"...\", \"resources\": [\"...\"], \"estimated_hours\": 5, \"subtopics\": [{{\"name\": \"Subtopic 1.1\", \"description\": \"...\", \"resources\": [\"...\"], \"estimated_hours\": 2}}]}}]}}"
     
-    if not message:
-        emit('error', {'message': 'Message cannot be empty'})
-        return
+    response = requests.post(
+        OLLAMA_API,
+        json={"model": "llama3.2", "prompt": prompt}
+    )
     
-    conn = get_db_connection()
-    
-    # Handle "new" chat_id or missing chat_id
-    if chat_id == 'new' or chat_id == '':
-        # Create a new chat
-        chat_id = str(uuid.uuid4())
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Generate a title based on the user's first message
-        title = generate_chat_title(message)
-        
-        conn.execute('INSERT INTO chats (id, user_id, title, created_at) VALUES (?, ?, ?, ?)',
-                    (chat_id, session['user_id'], title, now))
-        conn.commit()
-        print(f"Created new chat with ID: {chat_id} and title: {title}")
-        
-        # Emit a chat_created event to update the UI
-        emit('chat_created', {
-            'chat_id': chat_id,
-            'title': title,
-            'created_at': now
-        })
-    else:
-        # Verify chat belongs to user
-        chat = conn.execute('SELECT * FROM chats WHERE id = ? AND user_id = ?', 
-                         (chat_id, session['user_id'])).fetchone()
-        if not chat:
-            print(f"Invalid chat ID: {chat_id}")
-            conn.close()
-            emit('error', {'message': 'Invalid chat'})
-            return
-    
-    # Save user message to database
-    message_id = str(uuid.uuid4())
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    conn.execute('INSERT INTO chat_messages (id, chat_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-                (message_id, chat_id, 'user', message, now))
-    conn.commit()
-    print(f"Saved user message to database")
-    
-    # Send to Ollama API - using local Llama 3.2 model
     try:
-        # Stream the response
-        ai_message_id = str(uuid.uuid4())
-        emit('start_ai_response', {'message_id': ai_message_id})
+        result = response.json()
+        roadmap_text = result.get('response', '')
         
-        try:
-            print(f"Sending request to Ollama API")
-            response = requests.post(
-                'http://localhost:11434/api/chat',
-                json={
-                    'model': 'llama3.2',
-                    'messages': [{'role': 'user', 'content': message}],
-                    'stream': False
-                }
-            )
-            
-            if response.status_code == 200:
-                ai_response = response.json().get('message', {}).get('content', '')
-                print(f"Received AI response: {ai_response[:50]}...")
-                
-                # Save AI response to database
-                conn.execute('INSERT INTO chat_messages (id, chat_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-                            (ai_message_id, chat_id, 'assistant', ai_response, now))
-                conn.commit()
-                
-                # Award points for using AI chat
-                conn.execute('UPDATE users SET points = points + 5 WHERE id = ?', (session['user_id'],))
-                conn.commit()
-                
-                # Check if this is their first chat (for achievement)
-                chat_count = conn.execute('SELECT COUNT(*) FROM chats WHERE user_id = ?', 
-                                       (session['user_id'],)).fetchone()[0]
-                
-                if chat_count == 1:
-                    # Award the "First Chat" achievement
-                    conn.execute('''
-                        INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, earned_at) 
-                        VALUES (?, ?, ?)
-                    ''', (session['user_id'], '1', now))
-                    conn.commit()
-                    emit('achievement_earned', {
-                        'name': 'First Chat',
-                        'description': 'Started your first AI chat session',
-                        'points': 10
-                    })
-                
-                # Simulate streaming for better UX
-                words = ai_response.split()
-                chunk_size = 1  # Send one word at a time for smoother streaming
-                for i in range(0, len(words), chunk_size):
-                    chunk = ' '.join(words[i:i+chunk_size])
-                    # Fix numbering patterns for Markdown compatibility
-                    chunk = re.sub(r'(\d+)\. ', r'\1\. ', chunk)
-                    emit('ai_response_chunk', {'text': chunk})
-                    # Add a small delay for more natural typing effect
-                    time.sleep(0.05)
-                
-                emit('ai_response_complete')
+        # Extract JSON from the response
+        import re
+        json_pattern = r'```json\s*([\s\S]*?)\s*```'
+        match = re.search(json_pattern, roadmap_text)
+        
+        if match:
+            roadmap_json = json.loads(match.group(1))
+        else:
+            # Try to extract JSON without the markdown code block
+            json_start = roadmap_text.find('{')
+            json_end = roadmap_text.rfind('}') + 1
+            if json_start != -1 and json_end != -1:
+                roadmap_json = json.loads(roadmap_text[json_start:json_end])
             else:
-                print(f"Error from Ollama API: {response.status_code}")
-                fallback_response = "I'm sorry, I couldn't process your request right now."
-                emit('ai_response_chunk', {'text': fallback_response})
-                emit('ai_response_complete')
-                emit('error', {'message': f'Failed to get response from AI model: {response.status_code}'})
-                
-                # Save fallback response
-                conn.execute('INSERT INTO chat_messages (id, chat_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-                            (ai_message_id, chat_id, 'assistant', fallback_response, now))
-                conn.commit()
+                return jsonify({"error": "Failed to parse roadmap from AI response"}), 500
         
-        except Exception as e:
-            print(f"Error connecting to Ollama: {str(e)}")
-            fallback_response = "I'm sorry, I couldn't connect to the AI model. Make sure Ollama is running with Llama 3.2 installed."
-            emit('ai_response_chunk', {'text': fallback_response})
-            emit('ai_response_complete')
-            emit('error', {'message': f'Error connecting to Ollama: {str(e)}'})
-            
-            # Save fallback response
-            conn.execute('INSERT INTO chat_messages (id, chat_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-                        (ai_message_id, chat_id, 'assistant', fallback_response, now))
-            conn.commit()
+        # Add roadmap to database
+        roadmap_id = str(int(time.time()))
+        roadmaps_db[roadmap_id] = roadmap_json
+        roadmaps_db[roadmap_id]['id'] = roadmap_id
+        roadmaps_db[roadmap_id]['creator'] = username
+        roadmaps_db[roadmap_id]['completed_topics'] = []
+        
+        # Add roadmap to user's roadmaps
+        users_db[username]['roadmaps'].append(roadmap_id)
+        
+        return jsonify({"roadmap": roadmaps_db[roadmap_id]})
     
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        emit('error', {'message': f'Error: {str(e)}'})
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/roadmap/<roadmap_id>')
+@login_required
+def view_roadmap(roadmap_id):
+    if roadmap_id not in roadmaps_db:
+        return redirect(url_for('dashboard'))
     
-    finally:
-        conn.close()
+    roadmap = roadmaps_db[roadmap_id]
+    return render_template('roadmap_view.html', roadmap=roadmap)
+
+@app.route('/api/complete-topic', methods=['POST'])
+@login_required
+def api_complete_topic():
+    username = session['username']
+    roadmap_id = request.json.get('roadmap_id', '')
+    topic_name = request.json.get('topic_name', '')
+    
+    if roadmap_id not in roadmaps_db or roadmap_id not in users_db[username]['roadmaps']:
+        return jsonify({"error": "Roadmap not found"}), 404
+    
+    # Mark topic as completed
+    if topic_name not in roadmaps_db[roadmap_id]['completed_topics']:
+        roadmaps_db[roadmap_id]['completed_topics'].append(topic_name)
+        
+        # Add to user's completed topics
+        if topic_name not in users_db[username]['completed_topics']:
+            users_db[username]['completed_topics'].append(topic_name)
+        
+        # Add points
+        users_db[username]['points'] += 10
+        
+        # Update streak
+        users_db[username]['streak'] += 1
+        
+        # Level up if needed
+        if users_db[username]['points'] >= users_db[username]['level'] * 100:
+            users_db[username]['level'] += 1
+        
+        # Save the updated database
+        save_db()
+    
+    return jsonify({
+        "success": True,
+        "points": users_db[username]['points'],
+        "level": users_db[username]['level'],
+        "streak": users_db[username]['streak']
+    })
 
 @app.route('/forum')
 def forum():
-    conn = get_db_connection()
-    categories = conn.execute('SELECT * FROM forum_categories').fetchall()
-    
-    # Process categories to add statistics
-    result_categories = []
-    for category in categories:
-        category_id = category['id']
-        # Count topics in this category
-        topic_count = conn.execute('SELECT COUNT(*) FROM forum_topics WHERE category_id = ?', 
-                               (category_id,)).fetchone()[0]
-        
-        # Get latest topic in this category
-        latest_topic = conn.execute('''
-            SELECT t.*, u.username FROM forum_topics t
-            JOIN users u ON t.user_id = u.id
-            WHERE t.category_id = ?
-            ORDER BY t.created_at DESC LIMIT 1
-        ''', (category_id,)).fetchone()
-        
-        # Create a new dictionary with all the data we need
-        category_data = dict(category)
-        category_data['topic_count'] = topic_count
-        category_data['latest_topic'] = latest_topic
-        result_categories.append(category_data)
-    
-    conn.close()
-    return render_template('forum.html', categories=result_categories)
+    return render_template('forum.html', posts=forum_posts)
 
-@app.route('/forum/category/<category_id>')
-def forum_category(category_id):
-    conn = get_db_connection()
-    category = conn.execute('SELECT * FROM forum_categories WHERE id = ?', (category_id,)).fetchone()
+@app.route('/api/forum-post', methods=['POST'])
+@login_required
+def api_forum_post():
+    username = session['username']
+    title = request.json.get('title', '')
+    content = request.json.get('content', '')
     
-    if not category:
-        conn.close()
-        return redirect(url_for('forum'))
+    post_id = str(int(time.time()))
+    post = {
+        'id': post_id,
+        'title': title,
+        'content': content,
+        'author': username,
+        'timestamp': time.time(),
+        'comments': []
+    }
     
-    topics = conn.execute('''
-        SELECT t.*, u.username, 
-               (SELECT COUNT(*) FROM forum_replies WHERE topic_id = t.id) as reply_count
-        FROM forum_topics t
-        JOIN users u ON t.user_id = u.id
-        WHERE t.category_id = ?
-        ORDER BY t.created_at DESC
-    ''', (category_id,)).fetchall()
+    forum_posts.append(post)
     
-    conn.close()
-    return render_template('forum_category.html', category=category, topics=topics)
+    # Add points for posting
+    users_db[username]['points'] += 5
+    
+    # Save the updated database
+    save_db()
+    
+    return jsonify({"success": True, "post": post})
 
-@app.route('/forum/topic/<topic_id>')
-def forum_topic(topic_id):
-    conn = get_db_connection()
-    topic = conn.execute('''
-        SELECT t.*, u.username, c.name as category_name
-        FROM forum_topics t
-        JOIN users u ON t.user_id = u.id
-        JOIN forum_categories c ON t.category_id = c.id
-        WHERE t.id = ?
-    ''', (topic_id,)).fetchone()
+@app.route('/api/forum-comment', methods=['POST'])
+@login_required
+def api_forum_comment():
+    username = session['username']
+    post_id = request.json.get('post_id', '')
+    content = request.json.get('content', '')
     
-    if not topic:
-        conn.close()
-        return redirect(url_for('forum'))
+    for post in forum_posts:
+        if post['id'] == post_id:
+            comment = {
+                'id': str(int(time.time())),
+                'content': content,
+                'author': username,
+                'timestamp': time.time()
+            }
+            post['comments'].append(comment)
+            
+            # Add points for commenting
+            users_db[username]['points'] += 2
+            
+            # Save the updated database
+            save_db()
+            
+            return jsonify({"success": True, "comment": comment})
     
-    # Increment view count
-    conn.execute('UPDATE forum_topics SET views = views + 1 WHERE id = ?', (topic_id,))
-    conn.commit()
-    
-    replies = conn.execute('''
-        SELECT r.*, u.username
-        FROM forum_replies r
-        JOIN users u ON r.user_id = u.id
-        WHERE r.topic_id = ?
-        ORDER BY r.created_at
-    ''', (topic_id,)).fetchall()
-    
-    conn.close()
-    return render_template('forum_topic.html', topic=topic, replies=replies)
-
-@app.route('/forum/new-topic', methods=['GET', 'POST'])
-def new_topic():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        category_id = request.form.get('category')
-        title = request.form.get('title')
-        content = request.form.get('content')
-        
-        if not category_id or not title or not content:
-            conn = get_db_connection()
-            categories = conn.execute('SELECT * FROM forum_categories').fetchall()
-            conn.close()
-            return render_template('new_topic.html', categories=categories, 
-                                 error='All fields are required')
-        
-        topic_id = str(uuid.uuid4())
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO forum_topics (id, category_id, user_id, title, content, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (topic_id, category_id, session['user_id'], title, content, now, now))
-        
-        # Award points for creating a topic
-        conn.execute('UPDATE users SET points = points + 15 WHERE id = ?', (session['user_id'],))
-        
-        # Check if this is their first forum post (for achievement)
-        post_count = conn.execute('''
-            SELECT COUNT(*) FROM forum_topics WHERE user_id = ?
-            UNION ALL
-            SELECT COUNT(*) FROM forum_replies WHERE user_id = ?
-        ''', (session['user_id'], session['user_id'])).fetchone()[0]
-        
-        if post_count == 1:
-            # Award the "Forum Novice" achievement
-            conn.execute('''
-                INSERT OR IGNORE INTO user_achievements (user_id, achievement_id, earned_at) 
-                VALUES (?, ?, ?)
-            ''', (session['user_id'], '2', now))
-        
-        conn.commit()
-        conn.close()
-        
-        return redirect(url_for('forum_topic', topic_id=topic_id))
-    
-    conn = get_db_connection()
-    categories = conn.execute('SELECT * FROM forum_categories').fetchall()
-    conn.close()
-    
-    return render_template('new_topic.html', categories=categories)
-
-@app.route('/forum/topic/<topic_id>/reply', methods=['POST'])
-def reply_to_topic(topic_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    content = request.form.get('content')
-    
-    if not content:
-        return redirect(url_for('forum_topic', topic_id=topic_id))
-    
-    reply_id = str(uuid.uuid4())
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    
-    conn = get_db_connection()
-    conn.execute('''
-        INSERT INTO forum_replies (id, topic_id, user_id, content, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (reply_id, topic_id, session['user_id'], content, now, now))
-    
-    # Award points for replying
-    conn.execute('UPDATE users SET points = points + 10 WHERE id = ?', (session['user_id'],))
-    conn.commit()
-    conn.close()
-    
-    return redirect(url_for('forum_topic', topic_id=topic_id))
-
-@app.route('/roadmap')
-def roadmap():
-    return render_template('roadmap.html')
+    return jsonify({"error": "Post not found"}), 404
 
 @app.route('/leaderboard')
 def leaderboard():
-    conn = get_db_connection()
-    users = conn.execute('''
-        SELECT id, username, points, level, streak
-        FROM users
-        ORDER BY points DESC
-        LIMIT 20
-    ''').fetchall()
-    conn.close()
+    # Sort users by points
+    sorted_users = sorted(
+        [{"username": u, **data} for u, data in users_db.items()],
+        key=lambda x: x['points'],
+        reverse=True
+    )
     
-    return render_template('leaderboard.html', users=users)
+    # Calculate highest points and streak
+    highest_points = max([u['points'] for u in sorted_users]) if sorted_users else 0
+    highest_streak = max([u['streak'] for u in sorted_users]) if sorted_users else 0
+    
+    # Calculate next level points
+    next_level_points = 0
+    if 'username' in session and session['username'] in users_db:
+        current_user = users_db[session['username']]
+        next_level_points = 100 - (current_user['points'] % 100)
+    
+    return render_template('leaderboard.html', 
+                          leaderboard=sorted_users,
+                          highest_points=highest_points,
+                          highest_streak=highest_streak,
+                          next_level_points=next_level_points)
 
-@app.route('/profile')
-def profile():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+@app.route('/api/generate-quiz', methods=['POST'])
+@login_required
+def api_generate_quiz():
+    topic = request.json.get('topic', '')
     
-    conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    # Generate quiz using Ollama
+    prompt = f"Create a quiz with 5 multiple-choice questions about {topic}. Format as JSON with the following structure: {{\"questions\": [{{\"question\": \"...\", \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\"], \"correct_index\": 0}}]}}"
     
-    # Get achievements
-    achievements = conn.execute('''
-        SELECT a.* FROM achievements a
-        JOIN user_achievements ua ON a.id = ua.achievement_id
-        WHERE ua.user_id = ?
-    ''', (session['user_id'],)).fetchall()
-    
-    # Get forum activity
-    topics = conn.execute('''
-        SELECT t.*, c.name as category_name
-        FROM forum_topics t
-        JOIN forum_categories c ON t.category_id = c.id
-        WHERE t.user_id = ?
-        ORDER BY t.created_at DESC
-        LIMIT 5
-    ''', (session['user_id'],)).fetchall()
-    
-    replies = conn.execute('''
-        SELECT r.*, t.title as topic_title
-        FROM forum_replies r
-        JOIN forum_topics t ON r.topic_id = t.id
-        WHERE r.user_id = ?
-        ORDER BY r.created_at DESC
-        LIMIT 5
-    ''', (session['user_id'],)).fetchall()
-    
-    # Get chat history
-    chats = conn.execute('''
-        SELECT * FROM chats
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        LIMIT 5
-    ''', (session['user_id'],)).fetchall()
-    
-    conn.close()
-    
-    return render_template('profile.html', user=user, achievements=achievements,
-                         topics=topics, replies=replies, chats=chats)
-
-@app.route('/api/chats/<chat_id>/delete', methods=['POST'])
-def delete_chat(chat_id):
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    response = requests.post(
+        OLLAMA_API,
+        json={"model": "llama3.2", "prompt": prompt}
+    )
     
     try:
-        conn = get_db_connection()
+        result = response.json()
+        quiz_text = result.get('response', '')
         
-        # First, verify the chat belongs to the user
-        chat = conn.execute('SELECT * FROM chats WHERE id = ? AND user_id = ?',
-                          (chat_id, session['user_id'])).fetchone()
+        # Extract JSON from the response
+        import re
+        json_pattern = r'```json\s*([\s\S]*?)\s*```'
+        match = re.search(json_pattern, quiz_text)
         
-        if not chat:
-            conn.close()
-            return jsonify({'success': False, 'error': 'Chat not found'}), 404
+        if match:
+            quiz_json = json.loads(match.group(1))
+        else:
+            # Try to extract JSON without the markdown code block
+            json_start = quiz_text.find('{')
+            json_end = quiz_text.rfind('}') + 1
+            if json_start != -1 and json_end != -1:
+                quiz_json = json.loads(quiz_text[json_start:json_end])
+            else:
+                return jsonify({"error": "Failed to parse quiz from AI response"}), 500
         
-        # Delete all messages associated with the chat
-        conn.execute('DELETE FROM chat_messages WHERE chat_id = ?', (chat_id,))
-        
-        # Delete the chat itself
-        conn.execute('DELETE FROM chats WHERE id = ?', (chat_id,))
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True})
+        return jsonify({"quiz": quiz_json})
     
     except Exception as e:
-        print(f"Error deleting chat: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/chats/clear', methods=['POST'])
-def clear_all_chats():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
-    try:
-        conn = get_db_connection()
-        
-        # Get all chat IDs for this user
-        chats = conn.execute('SELECT id FROM chats WHERE user_id = ?', 
-                           (session['user_id'],)).fetchall()
-        
-        chat_ids = [chat['id'] for chat in chats]
-        
-        # Delete all messages for user's chats
-        for chat_id in chat_ids:
-            conn.execute('DELETE FROM chat_messages WHERE chat_id = ?', (chat_id,))
-        
-        # Delete all chats for the user
-        conn.execute('DELETE FROM chats WHERE user_id = ?', (session['user_id'],))
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({'success': True})
-    
-    except Exception as e:
-        print(f"Error clearing chats: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/ocr', methods=['POST'])
-def process_ocr():
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-    
-    try:
-        data = request.json
-        image_data = data.get('image')
-        
-        if not image_data:
-            return jsonify({'success': False, 'error': 'No image data provided'}), 400
-        
-        # Extract the base64 data part
-        if 'base64,' in image_data:
-            image_data = image_data.split('base64,')[1]
-        
-        # Decode base64 to binary
-        image_binary = base64.b64decode(image_data)
-        
-        # Open image with PIL
-        image = Image.open(io.BytesIO(image_binary))
-        
-        # Process with pytesseract
-        text = pytesseract.image_to_string(image)
-        
-        return jsonify({
-            'success': True,
-            'text': text
-        })
-        
-    except Exception as e:
-        print(f"OCR Error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True) 
+    app.run(debug=True, port=5000) 

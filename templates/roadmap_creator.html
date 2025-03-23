@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Roadmap Creator - IntelliLearn{% endblock %}
+
+{% block page_title %}Create Learning Roadmap{% endblock %}
+
+{% block content %}
+<div class="roadmap-creator">
+    <div class="intro-section">
+        <h3>Generate a Personalized Learning Roadmap</h3>
+        <p>Enter any topic you want to learn, and our AI will create a customized roadmap with resources and milestones to guide your learning journey.</p>
+    </div>
+    
+    <div class="creator-form-container">
+        <form id="roadmap-form" class="creator-form">
+            <div class="form-group">
+                <label for="roadmap-topic" class="form-label">What would you like to learn?</label>
+                <div class="input-container">
+                    <input type="text" id="roadmap-topic" name="topic" required placeholder="e.g. Machine Learning, Web Development, Digital Marketing...">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Generate Roadmap
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div id="loading-indicator" class="loading-container" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+        <p class="loading-text">Generating your personalized roadmap...</p>
+        <p class="loading-subtext">This may take a minute as our AI creates a comprehensive learning path.</p>
+    </div>
+    
+    <div id="roadmap-result"></div>
+    
+    <div class="roadmap-examples">
+        <h3>Popular Roadmap Examples</h3>
+        <div class="examples-grid">
+            <div class="example-card" data-topic="Python Programming">
+                <div class="example-icon"><i class="fas fa-code"></i></div>
+                <h4>Python Programming</h4>
+            </div>
+            <div class="example-card" data-topic="Data Science">
+                <div class="example-icon"><i class="fas fa-chart-bar"></i></div>
+                <h4>Data Science</h4>
+            </div>
+            <div class="example-card" data-topic="Web Development">
+                <div class="example-icon"><i class="fas fa-globe"></i></div>
+                <h4>Web Development</h4>
+            </div>
+            <div class="example-card" data-topic="Machine Learning">
+                <div class="example-icon"><i class="fas fa-brain"></i></div>
+                <h4>Machine Learning</h4>
+            </div>
+            <div class="example-card" data-topic="Digital Marketing">
+                <div class="example-icon"><i class="fas fa-ad"></i></div>
+                <h4>Digital Marketing</h4>
+            </div>
+            <div class="example-card" data-topic="Graphic Design">
+                <div class="example-icon"><i class="fas fa-paint-brush"></i></div>
+                <h4>Graphic Design</h4>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .roadmap-creator {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .intro-section {
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .creator-form-container {
+        background-color: var(--bg-tertiary);
+        padding: 30px;
+        border-radius: var(--border-radius);
+        backdrop-filter: blur(var(--blur));
+    }
+    
+    .input-container {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .input-container input {
+        flex: 1;
+        font-size: 16px;
+    }
+    
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 0;
+    }
+    
+    .loading-spinner {
+        margin-bottom: 20px;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--accent-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .loading-subtext {
+        color: var(--text-secondary);
+    }
+    
+    .roadmap-examples {
+        margin-top: 20px;
+    }
+    
+    .roadmap-examples h3 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .examples-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+    }
+    
+    .example-card {
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition);
+        backdrop-filter: blur(var(--blur));
+    }
+    
+    .example-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--box-shadow);
+        background-color: var(--bg-secondary);
+    }
+    
+    .example-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--accent-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+    }
+    
+    .example-icon i {
+        font-size: 24px;
+        color: var(--text-primary);
+    }
+    
+    .example-card h4 {
+        margin: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .input-container {
+            flex-direction: column;
+        }
+        
+        .examples-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Example roadmaps clickable
+        const exampleCards = document.querySelectorAll('.example-card');
+        const topicInput = document.getElementById('roadmap-topic');
+        
+        exampleCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const topic = this.getAttribute('data-topic');
+                if (topicInput) {
+                    topicInput.value = topic;
+                    
+                    // Scroll to form
+                    const form = document.getElementById('roadmap-form');
+                    if (form) {
+                        form.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,839 +1,590 @@
-{% extends "base.html" %}
-
-{% block title %}IntelliLearn - AI Assisted Learning Platform for Students{% endblock %}
-
-{% block content %}
-<!-- Hero Section -->
-<section class="relative overflow-hidden">
-    <!-- Background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-primary-900 opacity-90 z-0"></div>
-    <div class="absolute inset-0 bg-[url('/static/images/grid-pattern.svg')] opacity-20 z-0"></div>
-    
-    <!-- Floating Elements (decorative) -->
-    <div class="absolute top-40 left-10 w-64 h-64 bg-primary-600 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-    <div class="absolute bottom-20 right-10 w-80 h-80 bg-accent-600 rounded-full filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 2s;"></div>
-    
-    <!-- Pixel Art Elements -->
-    <div class="pixel-block absolute top-20 right-40 animate-float" style="animation-delay: 0.5s;"></div>
-    <div class="pixel-block pixel-block-lg absolute bottom-40 left-20 animate-float-reverse" style="animation-delay: 1s;"></div>
-    <div class="pixel-block pixel-block-sm absolute top-60 left-40 animate-float" style="animation-delay: 1.5s;"></div>
-    <div class="pixel-star absolute right-60 bottom-80 animate-pulse-slow" style="animation-delay: 2s;"></div>
-    <div class="pixel-star absolute left-80 top-40 animate-pulse-slow" style="animation-delay: 1s;"></div>
-    <div class="pixel-coin absolute right-20 top-60 animate-spin-slow"></div>
-    <div class="pixel-coin absolute left-60 bottom-60 animate-spin-slow" style="animation-delay: 0.5s;"></div>
-    
-    <div class="container mx-auto px-4 py-24 md:py-32 relative z-10">
-        <div class="grid md:grid-cols-2 gap-12 items-center">
-            <div class="max-w-xl">
-                <!-- Hero Text -->
-                <div class="max-w-3xl">
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                        <span class="text-white" data-text="Learn Smarter">Learn Smarter</span> 
-                        <span class="text-white" data-text="with">with</span> 
-                        <span class="text-white" data-text="AI Assistance">AI Assistance</span>
-                    </h1>
-                    <p class="text-xl md:text-2xl text-gray-300 mb-8">
-                        Boost your learning with our AI-powered platform that helps you understand complex concepts, practice with smart exercises, and track your progress.
-                    </p>
-                </div>
-                <div class="flex flex-wrap gap-4">
-                    <a href="/register" class="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 transition text-white font-medium button-pixel">
-                        Get Started For Free
-                    </a>
-                    <a href="#features" class="px-6 py-3 rounded-xl border border-gray-600 hover:border-primary-500 transition text-gray-300 hover:text-white font-medium flex items-center">
-                        <span>Learn More</span>
-                        <i class="fas fa-arrow-down ml-2"></i>
-                    </a>
-                </div>
-                
-                <!-- Stats -->
-                <div class="flex gap-8 mt-12">
-                    <div class="stat-box">
-                        <p class="text-3xl font-bold text-white">100%</p>
-                        <p class="text-gray-400">Free Access</p>
-                    </div>
-                    <div class="stat-box">
-                        <p class="text-3xl font-bold text-white">24/7</p>
-                        <p class="text-gray-400">AI Support</p>
-                    </div>
-                    <div class="stat-box">
-                        <p class="text-3xl font-bold text-white">500+</p>
-                        <p class="text-gray-400">Community Users</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="relative">
-                <!-- Laptop mockup with AI chat UI -->
-                <div class="relative mx-auto max-w-md">
-                    <div class="glass-effect rounded-2xl overflow-hidden shadow-2xl border border-gray-700">
-                        <div class="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
-                            <div class="flex items-center space-x-2">
-                                <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                            </div>
-                            <div class="text-gray-400 text-sm">AI Chat - IntelliLearn</div>
-                            <div></div>
-                        </div>
-                        <div class="p-4 bg-gray-900">
-                            <!-- Chat messages -->
-                            <div class="space-y-4">
-                                <div class="flex justify-end">
-                                    <div class="bg-primary-700 text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-xs">
-                                        Can you explain how machine learning algorithms work?
-                                    </div>
-                                </div>
-                                <div class="flex">
-                                    <div class="bg-gray-800 text-gray-200 rounded-2xl rounded-tl-sm px-4 py-2 max-w-xs">
-                                        <p>Machine learning algorithms learn from data by:</p>
-                                        <ol class="list-decimal list-inside mt-2 space-y-1">
-                                            <li>Finding patterns in examples</li>
-                                            <li>Creating a model based on those patterns</li>
-                                            <li>Making predictions on new data</li>
-                                        </ol>
-                                        <p class="mt-2">Would you like me to explain a specific type of algorithm?</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Input area -->
-                            <div class="mt-4 flex">
-                                <input type="text" placeholder="Ask anything..." class="w-full bg-gray-800 text-gray-200 rounded-l-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                <button class="bg-primary-600 hover:bg-primary-700 text-white rounded-r-xl px-4">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Level Up animation (replacing achievement popup) -->
-                <div class="pixel-level-up absolute top-0 right-0 transform translate-x-1/4">
-                    <div class="pixel-text">LEVEL UP!</div>
-                    <div class="pixel-sparkles"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Features Section -->
-<section id="features" class="py-20 bg-gray-900">
-    <div class="container mx-auto px-4">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                <span class="primary-text-gradient">Key Features</span> of Our Platform
-            </h2>
-            <p class="text-gray-300">
-                Everything you need to enhance your learning experience in one place.
-                From AI assistance to community support, we've got you covered.
-            </p>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliLearn - AI-Powered Learning Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --bg-tertiary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --accent-primary: #7c4dff;
+            --accent-primary-rgb: 124, 77, 255;
+            --accent-secondary: #ff7043;
+            --box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            --border-radius: 12px;
+            --blur: 10px;
+            --transition: all 0.3s ease;
+        }
         
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Feature 1 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-primary flex items-center justify-center mb-6">
-                    <i class="fas fa-robot text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">AI Powered Chatbot</h3>
-                <p class="text-gray-400">
-                    Get instant help with your questions using our locally running Llama3.2 AI model. The AI provides personalized explanations and assistance.
-                </p>
-            </div>
-            
-            <!-- Feature 2 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-secondary flex items-center justify-center mb-6">
-                    <i class="fas fa-users text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Community Forum</h3>
-                <p class="text-gray-400">
-                    Connect with fellow students, share knowledge, ask questions, and collaborate on challenging topics in our active community forum.
-                </p>
-            </div>
-            
-            <!-- Feature 3 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-primary flex items-center justify-center mb-6">
-                    <i class="fas fa-road text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Learning Roadmaps</h3>
-                <p class="text-gray-400">
-                    Get personalized learning paths generated by AI to guide your educational journey based on your goals and current knowledge.
-                </p>
-            </div>
-            
-            <!-- Feature 4 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-secondary flex items-center justify-center mb-6">
-                    <i class="fas fa-trophy text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Gamification</h3>
-                <p class="text-gray-400">
-                    Stay motivated with points, levels, streaks, and achievements as you learn and contribute to the community.
-                </p>
-            </div>
-            
-            <!-- Feature 5 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-primary flex items-center justify-center mb-6">
-                    <i class="fas fa-history text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Chat History</h3>
-                <p class="text-gray-400">
-                    Access all your previous AI conversations at any time. Never lose valuable information or explanations.
-                </p>
-            </div>
-            
-            <!-- Feature 6 -->
-            <div class="glass-effect rounded-2xl p-6 hover:transform hover:scale-105 transition-all duration-300">
-                <div class="w-14 h-14 rounded-full gradient-secondary flex items-center justify-center mb-6">
-                    <i class="fas fa-mobile-alt text-white text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Mobile Friendly</h3>
-                <p class="text-gray-400">
-                    Access all features on any device with our responsive design that works beautifully on desktop, tablet, and mobile.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- AI Chat Demo Section -->
-<section class="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
-    <div class="container mx-auto px-4">
-        <div class="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-                <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                    <span class="primary-text-gradient">AI-Powered</span> Learning Assistant
-                </h2>
-                <p class="text-gray-300 mb-6">
-                    Our AI learning assistant uses the powerful Llama3.2 model to provide you with accurate and helpful responses to all your academic questions.
-                </p>
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-primary-500 mt-1 mr-3"></i>
-                        <span class="text-gray-300">Get instant explanations on complex topics</span>
-                    </li>
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-primary-500 mt-1 mr-3"></i>
-                        <span class="text-gray-300">Practice with AI-generated quizzes and problems</span>
-                    </li>
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-primary-500 mt-1 mr-3"></i>
-                        <span class="text-gray-300">Receive step-by-step guidance on solving problems</span>
-                    </li>
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-primary-500 mt-1 mr-3"></i>
-                        <span class="text-gray-300">Ask follow-up questions for deeper understanding</span>
-                    </li>
-                </ul>
-                <a href="/ai-chat" class="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 transition text-white font-medium inline-flex items-center">
-                    <span>Try the AI Assistant</span>
-                    <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-            
-            <div class="relative">
-                <!-- Chat demo -->
-                <div class="glass-effect rounded-2xl p-6 relative z-10">
-                    <div class="space-y-6">
-                        <div class="flex items-start space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-user text-white"></i>
-                            </div>
-                            <div class="bg-gray-800 rounded-2xl rounded-tl-none p-4 text-gray-200">
-                                <p>How does photosynthesis work?</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-robot text-white"></i>
-                            </div>
-                            <div class="bg-gray-800 rounded-2xl rounded-tl-none p-4 text-gray-200">
-                                <p>Photosynthesis is the process plants use to convert light energy into chemical energy. Here's how it works:</p>
-                                <ol class="list-decimal list-inside mt-2 space-y-2">
-                                    <li>Plants capture light using chlorophyll in their chloroplasts</li>
-                                    <li>They use this energy to convert CO₂ and water into glucose and oxygen</li>
-                                    <li>The chemical equation is: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂</li>
-                                </ol>
-                                <p class="mt-2">This process is essential for plant growth and produces oxygen that many organisms, including humans, need to survive.</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-user text-white"></i>
-                            </div>
-                            <div class="bg-gray-800 rounded-2xl rounded-tl-none p-4 text-gray-200">
-                                <p>What's the difference between C3 and C4 photosynthesis?</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-start space-x-3 relative">
-                            <div class="w-8 h-8 rounded-full bg-accent-600 flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-robot text-white"></i>
-                            </div>
-                            <div class="bg-gray-800 rounded-2xl rounded-tl-none p-4 text-gray-200">
-                                <p>C3 and C4 photosynthesis differ in how plants fix carbon dioxide:</p>
-                                <div class="mt-2 space-y-2">
-                                    <p><strong>C3 Photosynthesis:</strong></p>
-                                    <ul class="list-disc list-inside ml-2">
-                                        <li>Most common form (85% of plants)</li>
-                                        <li>First product is a 3-carbon molecule (3-PGA)</li>
-                                        <li>Examples: rice, wheat, soybeans</li>
-                                        <li>Less efficient in hot, dry environments</li>
-                                    </ul>
-                                    
-                                    <p><strong>C4 Photosynthesis:</strong></p>
-                                    <ul class="list-disc list-inside ml-2">
-                                        <li>First product is a 4-carbon molecule (oxaloacetate)</li>
-                                        <li>Has spatial separation of carbon fixation</li>
-                                        <li>Examples: corn, sugarcane, sorghum</li>
-                                        <li>More efficient in hot, dry environments</li>
-                                    </ul>
-                                </div>
-                                <p class="mt-2">C4 plants evolved adaptations to reduce photorespiration, making them more efficient in tropical climates.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Background elements -->
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-600 rounded-full filter blur-3xl opacity-10 z-0"></div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Community Section -->
-<section class="py-20 bg-gray-900">
-    <div class="container mx-auto px-4">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-            <h2 class="text-3xl md:text-4xl font-bold mb-6">
-                <span class="secondary-text-gradient">Join Our Community</span> of Learners
-            </h2>
-            <p class="text-gray-300">
-                Connect with students and educators from around the world. Share knowledge,
-                ask questions, and collaborate on your learning journey.
-            </p>
-        </div>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         
-        <div class="grid md:grid-cols-3 gap-8">
-            <!-- Community Feature 1 -->
-            <div class="glass-effect rounded-2xl p-6">
-                <div class="h-12 w-12 rounded-xl bg-gradient-to-r from-accent-600 to-accent-700 flex items-center justify-center mb-6">
-                    <i class="fas fa-comments text-white"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Discussion Forums</h3>
-                <p class="text-gray-400 mb-4">
-                    Engage in thoughtful discussions with fellow students across a wide range of academic subjects.
-                </p>
-                <a href="/forum" class="text-accent-400 hover:text-accent-300 inline-flex items-center">
-                    <span>Explore Forums</span>
-                    <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                </a>
-            </div>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .hero {
+            min-height: 100vh;
+            padding: 120px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(var(--accent-primary-rgb), 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+        }
+        
+        .hero-content {
+            max-width: 900px;
+        }
+        
+        .logo {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        
+        .tagline {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        .description {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+        
+        .btn {
+            padding: 14px 30px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            transition: var(--transition);
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #6a3de0;
+            transform: translateY(-5px);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: translateY(-5px);
+        }
+        
+        .features {
+            padding: 80px 40px;
+            background-color: var(--bg-secondary);
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        
+        .section-title p {
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            transition: var(--transition);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(var(--accent-primary-rgb), 0.1);
+            color: var(--accent-primary);
+            font-size: 24px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+        
+        .feature-title {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .feature-description {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+        
+        .demo {
+            padding: 80px 40px;
+            text-align: center;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .demo-video {
+            position: relative;
+            margin-top: 40px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .demo-video img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background-color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background-color: #6a3de0;
+        }
+        
+        .testimonials {
+            padding: 80px 40px;
+            background-color: var(--bg-secondary);
+        }
+        
+        .testimonials-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .testimonial-card {
+            background-color: var(--bg-tertiary);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+            transition: var(--transition);
+            backdrop-filter: blur(var(--blur));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .testimonial-quote {
+            font-size: 60px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            opacity: 0.1;
+            color: var(--accent-primary);
+        }
+        
+        .testimonial-text {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-style: italic;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .author-info h4 {
+            margin-bottom: 5px;
+        }
+        
+        .author-role {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .cta {
+            padding: 100px 40px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(var(--accent-primary-rgb), 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+        }
+        
+        .cta-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .cta-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        .cta-description {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+        
+        footer {
+            padding: 40px;
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .footer-logo {
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-size: 24px;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent-primary);
+        }
+        
+        .footer-copyright {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .hero {
+                padding: 80px 20px;
+            }
             
-            <!-- Community Feature 2 -->
-            <div class="glass-effect rounded-2xl p-6">
-                <div class="h-12 w-12 rounded-xl bg-gradient-to-r from-accent-600 to-accent-700 flex items-center justify-center mb-6">
-                    <i class="fas fa-hands-helping text-white"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Peer Support</h3>
-                <p class="text-gray-400 mb-4">
-                    Get help from peers who have mastered the topics you're struggling with or help others to earn points.
-                </p>
-                <a href="/forum" class="text-accent-400 hover:text-accent-300 inline-flex items-center">
-                    <span>Ask for Help</span>
-                    <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                </a>
-            </div>
+            .logo {
+                font-size: 40px;
+            }
             
-            <!-- Community Feature 3 -->
-            <div class="glass-effect rounded-2xl p-6">
-                <div class="h-12 w-12 rounded-xl bg-gradient-to-r from-accent-600 to-accent-700 flex items-center justify-center mb-6">
-                    <i class="fas fa-medal text-white"></i>
-                </div>
-                <h3 class="text-xl font-semibold mb-3">Leaderboards</h3>
-                <p class="text-gray-400 mb-4">
-                    Compete with other students, earn points for your contributions, and climb the ranks on our leaderboards.
-                </p>
-                <a href="/leaderboard" class="text-accent-400 hover:text-accent-300 inline-flex items-center">
-                    <span>View Leaderboard</span>
-                    <i class="fas fa-arrow-right ml-2 text-sm"></i>
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Call to Action -->
-<section class="py-16 md:py-24 relative overflow-hidden">
-    <!-- Background elements -->
-    <div class="absolute inset-0 bg-gradient-to-br from-primary-900 to-gray-900 opacity-90 z-0"></div>
-    <div class="absolute inset-0 bg-[url('/static/images/grid-pattern.svg')] opacity-10 z-0"></div>
-    <div class="absolute -top-40 -right-40 w-96 h-96 bg-primary-600 rounded-full filter blur-3xl opacity-20 z-0"></div>
-    <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-accent-600 rounded-full filter blur-3xl opacity-20 z-0"></div>
-    
-    <div class="container mx-auto px-4 relative z-10">
-        <div class="max-w-4xl mx-auto text-center">
-            <h2 class="text-3xl md:text-5xl font-bold mb-6">
-                Ready to <span class="primary-text-gradient">Transform</span> Your Learning Experience?
-            </h2>
-            <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-                Join thousands of students who are already using IntelliLearn to enhance their education with AI assistance and community support.
-            </p>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="/register" class="px-8 py-4 rounded-xl bg-primary-600 hover:bg-primary-700 transition text-white font-medium text-lg">
-                    Create Free Account
-                </a>
-                <a href="/ai-chat" class="px-8 py-4 rounded-xl border border-gray-600 hover:border-primary-500 transition text-gray-300 hover:text-white font-medium text-lg">
-                    Try AI Chat Demo
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-{% endblock %}
-
-{% block scripts %}
-{{ super() }}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Create random pixel elements
-        function createRandomPixels() {
-            const container = document.querySelector('section.relative.overflow-hidden');
+            .tagline {
+                font-size: 24px;
+            }
             
-            // Create random floating pixels
-            for (let i = 0; i < 15; i++) {
-                const pixelElement = document.createElement('div');
-                pixelElement.classList.add('pixel-random');
-                
-                // Random position
-                const top = Math.random() * 100;
-                const left = Math.random() * 100;
-                pixelElement.style.top = `${top}%`;
-                pixelElement.style.left = `${left}%`;
-                
-                // Random size
-                const size = 4 + Math.random() * 8;
-                pixelElement.style.width = `${size}px`;
-                pixelElement.style.height = `${size}px`;
-                
-                // Random color
-                const colors = ['#6366f1', '#f43f5e', '#10b981', '#facc15'];
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                pixelElement.style.backgroundColor = color;
-                
-                // Random animation delay
-                pixelElement.style.animationDelay = `${Math.random() * 5}s`;
-                
-                container.appendChild(pixelElement);
+            .description {
+                font-size: 16px;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+            }
+            
+            .features, .demo, .testimonials, .cta {
+                padding: 60px 20px;
+            }
+            
+            .footer-container {
+                flex-direction: column;
+                gap: 20px;
             }
         }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="logo">IntelliLearn</h1>
+            <h2 class="tagline">Learn Anything with AI Assistance</h2>
+            <p class="description">
+                IntelliLearn is an AI-powered learning platform that creates personalized roadmaps,
+                answers your questions, and helps you achieve your learning goals faster than ever before.
+            </p>
+            <div class="cta-buttons">
+                <a href="{{ url_for('signup') }}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Get Started
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary">
+                    <i class="fas fa-sign-in-alt"></i> Log In
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <section class="features">
+        <div class="section-title">
+            <h2>Why Choose IntelliLearn?</h2>
+            <p>Our platform uses advanced AI to accelerate your learning process, making education more personalized and effective.</p>
+        </div>
         
-        // Create pixelated effect on hover for buttons
-        function setupPixelEffects() {
-            const buttons = document.querySelectorAll('.button-pixel');
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3 class="feature-title">AI Learning Assistant</h3>
+                <p class="feature-description">Ask questions anytime and get detailed, accurate answers tailored to your learning level and goals.</p>
+            </div>
             
-            buttons.forEach(button => {
-                button.addEventListener('mouseenter', function() {
-                    // Create pixel dust effect on hover
-                    for (let i = 0; i < 10; i++) {
-                        const pixel = document.createElement('div');
-                        pixel.classList.add('pixel-dust');
-                        
-                        // Random position around the button
-                        const x = Math.random() * 100;
-                        pixel.style.left = `${x}%`;
-                        pixel.style.top = '-10px';
-                        
-                        // Random color
-                        const colors = ['#6366f1', '#f43f5e', '#10b981', '#facc15'];
-                        const color = colors[Math.floor(Math.random() * colors.length)];
-                        pixel.style.backgroundColor = color;
-                        
-                        // Append to button
-                        this.appendChild(pixel);
-                        
-                        // Remove after animation completes
-                        setTimeout(() => {
-                            if (pixel.parentNode === this) {
-                                this.removeChild(pixel);
-                            }
-                        }, 1000);
-                    }
-                });
-            });
-        }
-        
-        // Create coin spin animation on click
-        function setupCoinAnimations() {
-            const statBoxes = document.querySelectorAll('.stat-box');
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <h3 class="feature-title">Custom Roadmaps</h3>
+                <p class="feature-description">Get a personalized learning pathway for any topic or skill you want to master.</p>
+            </div>
             
-            statBoxes.forEach(box => {
-                box.addEventListener('click', function(e) {
-                    // Create spinning coin
-                    const coin = document.createElement('div');
-                    coin.classList.add('pixel-coin', 'coin-pop');
-                    
-                    // Position at click location
-                    coin.style.position = 'absolute';
-                    coin.style.left = `${e.offsetX}px`;
-                    coin.style.top = `${e.offsetY}px`;
-                    
-                    this.appendChild(coin);
-                    
-                    // Play sound effect (if desired)
-                    // const sound = new Audio('/static/sounds/coin.mp3');
-                    // sound.play();
-                    
-                    // Remove after animation completes
-                    setTimeout(() => {
-                        if (coin.parentNode === this) {
-                            this.removeChild(coin);
-                        }
-                    }, 1000);
-                });
-            });
-        }
-        
-        // Initialize all effects
-        createRandomPixels();
-        setupPixelEffects();
-        setupCoinAnimations();
-    });
-</script>
-{% endblock %}
-
-{% block head_extra %}
-<style>
-    /* Pixel Art Elements */
-    .pixel-block {
-        width: 32px;
-        height: 32px;
-        background-color: #6366f1;
-        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
-        image-rendering: pixelated;
-    }
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="feature-title">Community Forum</h3>
+                <p class="feature-description">Connect with fellow learners, share insights, and collaborate on learning projects.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="feature-title">Progress Tracking</h3>
+                <p class="feature-description">Monitor your learning journey with detailed stats and achievements to stay motivated.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h3 class="feature-title">Adaptive Learning</h3>
+                <p class="feature-description">Our AI adapts to your learning pace and style, providing the right content at the right time.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-medal"></i>
+                </div>
+                <h3 class="feature-title">Gamified Experience</h3>
+                <p class="feature-description">Earn points, badges, and climb the leaderboard as you make progress and master new skills.</p>
+            </div>
+        </div>
+    </section>
     
-    .pixel-block-lg {
-        width: 48px;
-        height: 48px;
-        background-color: #f43f5e;
-        box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.3);
-    }
+    <section class="testimonials">
+        <div class="testimonials-container">
+            <div class="section-title">
+                <h2>What Our Users Say</h2>
+                <p>Discover how IntelliLearn has transformed the learning journey for people around the world.</p>
+            </div>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        <i class="fas fa-quote-right"></i>
+                    </div>
+                    <p class="testimonial-text">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce hendrerit consectetur tortor nec commodo. Nunc ultrices ligula sit amet augue bibendum mattis. Pellentesque tincidunt aliquet laoreet. Sed quis lorem eu augue egestas mattis. Morbi nulla sem, lacinia id rhoncus sed, tempor ac ex.
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>John Doe</h4>
+                            <p class="author-role">Software Developer</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        <i class="fas fa-quote-right"></i>
+                    </div>
+                    <p class="testimonial-text">
+                        Donec sed feugiat lectus. Praesent tincidunt turpis tellus, eu varius urna malesuada eget. In sed eleifend enim, ut rutrum purus. Integer vitae quam a massa efficitur volutpat. Quisque sagittis consectetur neque sit amet semper. Donec facilisis eget ex in finibus. Proin eleifend commodo malesuada.                     </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>Gary Stu</h4>
+                            <p class="author-role">College Student</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="testimonial-card">
+                    <div class="testimonial-quote">
+                        <i class="fas fa-quote-right"></i>
+                    </div>
+                    <p class="testimonial-text">
+                        Nunc dignissim leo diam, non scelerisque enim elementum tempus. Pellentesque laoreet tincidunt risus ac tincidunt. Curabitur sed auctor libero. Nam ultrices, diam eget sollicitudin aliquet, nibh urna sollicitudin purus, sit amet dictum est felis quis enim. Vivamus molestie elit in urna tempus sagittis.                    </p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>Mary Sue</h4>
+                            <p class="author-role">JEE Aspirant</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
     
-    .pixel-block-sm {
-        width: 24px;
-        height: 24px;
-        background-color: #10b981;
-        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-    }
+    <section class="cta">
+        <div class="cta-container">
+            <h2 class="cta-title">Ready to Transform Your Learning Journey?</h2>
+            <p class="cta-description">
+                Experience a fun way of learning through IntelliLearn's AI integrated Learning Platform.
+            </p>
+            <a href="{{ url_for('signup') }}" class="btn btn-primary">
+                <i class="fas fa-rocket"></i> Start Learning Now
+            </a>
+        </div>
+    </section>
     
-    /* Pixel Art Text */
-    .pixel-text-container {
-        display: inline-block;
-        position: relative;
-    }
-    
-    .pixel-text-animated {
-        font-family: 'Press Start 2P', 'Courier New', monospace;
-        color: #6366f1;
-        text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
-        position: relative;
-        display: inline-block;
-        animation: pixel-text-glitch 5s infinite;
-    }
-    
-    .pixel-text-animated-secondary {
-        font-family: 'Press Start 2P', 'Courier New', monospace;
-        color: #fb7185;
-        text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
-        position: relative;
-        display: inline-block;
-        animation: pixel-text-glitch 5s infinite;
-        animation-delay: 0.5s;
-    }
-    
-    .pixel-text-animated::before,
-    .pixel-text-animated::after,
-    .pixel-text-animated-secondary::before,
-    .pixel-text-animated-secondary::after {
-        content: attr(data-text);
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-    }
-    
-    .pixel-text-animated::before {
-        left: -2px;
-        animation: pixel-text-glitch-left 3s infinite;
-        color: #06b6d4;
-    }
-    
-    .pixel-text-animated::after {
-        left: 2px;
-        animation: pixel-text-glitch-right 2.5s infinite;
-        color: #f43f5e;
-    }
-    
-    .pixel-text-animated-secondary::before {
-        left: -2px;
-        animation: pixel-text-glitch-left 3s infinite;
-        animation-delay: 0.5s;
-        color: #6366f1;
-    }
-    
-    .pixel-text-animated-secondary::after {
-        left: 2px;
-        animation: pixel-text-glitch-right 2.5s infinite;
-        animation-delay: 0.5s;
-        color: #fbbf24;
-    }
-    
-    @keyframes pixel-text-glitch {
-        0%, 90%, 100% { transform: none; opacity: 1; }
-        92% { transform: skew(1deg, 0deg); opacity: 1; }
-        94% { transform: skew(-1deg, 0deg); opacity: 0.8; }
-        96% { transform: skew(1deg, 0deg); opacity: 1; }
-        98% { transform: none; opacity: 0.5; }
-    }
-    
-    @keyframes pixel-text-glitch-left {
-        0%, 87%, 100% { opacity: 0; }
-        88%, 90% { opacity: 1; }
-    }
-    
-    @keyframes pixel-text-glitch-right {
-        0%, 89%, 100% { opacity: 0; }
-        90%, 92% { opacity: 1; }
-    }
-    
-    @font-face {
-        font-family: 'Press Start 2P';
-        font-style: normal;
-        font-weight: 400;
-        src: url(https://fonts.gstatic.com/s/pressstart2p/v14/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2) format('woff2');
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-        font-display: swap;
-    }
-    
-    .pixel-star {
-        width: 0;
-        height: 0;
-        border-left: 15px solid transparent;
-        border-right: 15px solid transparent;
-        border-bottom: 30px solid #facc15;
-        position: relative;
-        transform: rotate(35deg);
-    }
-    
-    .pixel-star:before {
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-bottom: 22px solid #facc15;
-        position: absolute;
-        top: -15px;
-        left: -10px;
-        content: '';
-        transform: rotate(-35deg);
-    }
-    
-    .pixel-star:after {
-        position: absolute;
-        top: 3px;
-        left: -17px;
-        border-left: 15px solid transparent;
-        border-right: 15px solid transparent;
-        border-bottom: 25px solid #facc15;
-        content: '';
-        transform: rotate(-70deg);
-    }
-    
-    .pixel-coin {
-        width: 24px;
-        height: 24px;
-        background-color: #fbbf24;
-        border-radius: 50%;
-        border: 2px solid #f59e0b;
-        box-shadow: 0 0 10px #f59e0b;
-    }
-    
-    .coin-pop {
-        animation: coin-pop 1s ease-out forwards;
-    }
-    
-    .pixel-random {
-        position: absolute;
-        background-color: #6366f1;
-        opacity: 0.5;
-        animation: float-random 10s infinite ease-in-out;
-        z-index: 1;
-    }
-    
-    .pixel-dust {
-        position: absolute;
-        width: 4px;
-        height: 4px;
-        animation: dust-float 1s ease-out forwards;
-        z-index: 5;
-    }
-    
-    .pixel-level-up {
-        padding: 12px;
-        background-color: rgba(0, 0, 0, 0.7);
-        border: 2px solid #f59e0b;
-        border-radius: 4px;
-        animation: bob 2s infinite ease-in-out;
-        position: relative;
-    }
-    
-    .pixel-text {
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        color: #fbbf24;
-        font-size: 18px;
-        text-shadow: 2px 2px 0 #000;
-        letter-spacing: 1px;
-    }
-    
-    .pixel-sparkles {
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        width: 20px;
-        height: 20px;
-        background-color: #fbbf24;
-        clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-        animation: sparkle 1s infinite;
-    }
-    
-    .pixel-sparkles:after {
-        content: '';
-        position: absolute;
-        bottom: -15px;
-        left: 15px;
-        width: 15px;
-        height: 15px;
-        background-color: #f43f5e;
-        clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-        animation: sparkle 1.5s infinite;
-        animation-delay: 0.5s;
-    }
-    
-    .button-pixel {
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .button-pixel:after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        animation: button-shine 3s infinite;
-    }
-    
-    .stat-box {
-        position: relative;
-        transition: transform 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .stat-box:hover {
-        transform: translateY(-5px);
-    }
-    
-    .stat-box:after {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #6366f1, transparent);
-    }
-    
-    /* Animations */
-    @keyframes float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-15px); }
-    }
-    
-    @keyframes float-reverse {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(15px); }
-    }
-    
-    @keyframes float-random {
-        0% { transform: translate(0, 0); }
-        25% { transform: translate(10px, 10px); }
-        50% { transform: translate(0, 15px); }
-        75% { transform: translate(-10px, 5px); }
-        100% { transform: translate(0, 0); }
-    }
-    
-    @keyframes pulse-slow {
-        0%, 100% { opacity: 0.3; transform: scale(0.9); }
-        50% { opacity: 1; transform: scale(1.1); }
-    }
-    
-    @keyframes spin-slow {
-        from { transform: rotateY(0deg); }
-        to { transform: rotateY(360deg); }
-    }
-    
-    @keyframes sparkle {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.7); }
-    }
-    
-    @keyframes bob {
-        0%, 100% { transform: translateY(0) translateX(1/4); }
-        50% { transform: translateY(-8px) translateX(1/4); }
-    }
-    
-    @keyframes button-shine {
-        0% { left: -100%; }
-        20% { left: 100%; }
-        100% { left: 100%; }
-    }
-    
-    @keyframes dust-float {
-        0% { transform: translateY(0); opacity: 1; }
-        100% { transform: translateY(-50px); opacity: 0; }
-    }
-    
-    @keyframes coin-pop {
-        0% { transform: scale(0.5) translateY(0); opacity: 1; }
-        50% { transform: scale(1.5) translateY(-20px); opacity: 1; }
-        100% { transform: scale(1) translateY(-50px); opacity: 0; }
-    }
-    
-    .animate-float {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    .animate-float-reverse {
-        animation: float-reverse 5s ease-in-out infinite;
-    }
-    
-    .animate-pulse-slow {
-        animation: pulse-slow 4s ease-in-out infinite;
-    }
-    
-    .animate-spin-slow {
-        animation: spin-slow 5s linear infinite;
-    }
-</style>
-{% endblock %} 
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo">IntelliLearn</div>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Terms</a>
+                <a href="#">Privacy</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+        <div class="footer-copyright">
+            &copy; 2025 IntelliLearn. All rights reserved.
+        </div>
+    </footer>
+</body>
+</html> 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - IntelliLearn</title>
+    <title>Sign Up - IntelliLearn</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -51,7 +51,7 @@
             z-index: -1;
         }
         
-        .login-container {
+        .signup-container {
             width: 400px;
             max-width: 100%;
             background-color: var(--bg-secondary);
@@ -172,8 +172,38 @@
             color: var(--text-primary);
         }
         
+        .benefits {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: rgba(var(--accent-primary-rgb), 0.1);
+            border-radius: var(--border-radius);
+        }
+        
+        .benefits h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--accent-primary);
+        }
+        
+        .benefits ul {
+            list-style-type: none;
+        }
+        
+        .benefits li {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .benefits li i {
+            color: var(--accent-primary);
+        }
+        
         @media (max-width: 480px) {
-            .login-container {
+            .signup-container {
                 padding: 20px;
             }
             
@@ -193,9 +223,9 @@
         <span>Back to Home</span>
     </a>
     
-    <div class="login-container">
+    <div class="signup-container">
         <h1 class="logo">IntelliLearn</h1>
-        <h2 class="form-title">Log In</h2>
+        <h2 class="form-title">Create Account</h2>
         
         {% if error %}
         <div class="error-message">
@@ -203,7 +233,17 @@
         </div>
         {% endif %}
         
-        <form action="{{ url_for('login') }}" method="post">
+        <div class="benefits">
+            <h3>Join IntelliLearn Today</h3>
+            <ul>
+                <li><i class="fas fa-check-circle"></i> Personalized learning paths with AI assistance</li>
+                <li><i class="fas fa-check-circle"></i> Track your progress and earn points</li>
+                <li><i class="fas fa-check-circle"></i> Connect with a community of learners</li>
+                <li><i class="fas fa-check-circle"></i> Create custom roadmaps for any topic</li>
+            </ul>
+        </div>
+        
+        <form action="{{ url_for('signup') }}" method="post">
             <div class="form-group">
                 <label for="username" class="form-label">Username</label>
                 <input type="text" id="username" name="username" class="form-control" required>
@@ -215,13 +255,13 @@
             </div>
             
             <button type="submit" class="btn">
-                <i class="fas fa-sign-in-alt"></i>
-                <span>Log In</span>
+                <i class="fas fa-user-plus"></i>
+                <span>Create Account</span>
             </button>
         </form>
         
         <div class="helper-text">
-            Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a>
+            Already have an account? <a href="{{ url_for('login') }}">Log In</a>
         </div>
     </div>
 </body>

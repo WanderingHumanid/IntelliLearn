@@ -1,0 +1,661 @@
+{% extends "base.html" %}
+
+{% block title %}{{ roadmap.title }} - IntelliLearn{% endblock %}
+
+{% block page_title %}Learning Roadmap{% endblock %}
+
+{% block content %}
+<div class="roadmap-container">
+    <div class="roadmap-header">
+        <h1 class="roadmap-title">{{ roadmap.title }}</h1>
+        <p class="roadmap-description">{{ roadmap.description }}</p>
+        
+        <div class="roadmap-progress">
+            {% set completed = roadmap.completed_topics|length %}
+            {% set total = roadmap.topics|length %}
+            {% set percent = (completed / total * 100) if total > 0 else 0 %}
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ percent }}%;"></div>
+                </div>
+                <div class="progress-info">
+                    <span class="progress-percentage">{{ percent|round|int }}%</span>
+                    <span class="progress-text">{{ completed }}/{{ total }} topics completed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls-bar">
+        <button class="btn btn-secondary" id="expand-all-btn">
+            <i class="fas fa-expand-alt"></i> Expand All
+        </button>
+        <button class="btn btn-secondary" id="collapse-all-btn">
+            <i class="fas fa-compress-alt"></i> Collapse All
+        </button>
+        
+        <button class="btn btn-primary" id="generate-quiz-btn">
+            <i class="fas fa-question-circle"></i> Generate Quiz
+        </button>
+    </div>
+    
+    <div class="topics-container">
+        {% for topic in roadmap.topics %}
+        <div class="topic-card {% if topic.name in roadmap.completed_topics %}completed{% endif %}">
+            <div class="topic-header">
+                <div class="topic-title-container">
+                    <h3 class="topic-title">{{ topic.name }}</h3>
+                    <span class="estimated-time">
+                        <i class="far fa-clock"></i> {{ topic.estimated_hours }} hours
+                    </span>
+                </div>
+                
+                <div class="topic-controls">
+                    {% if topic.name in roadmap.completed_topics %}
+                    <button class="btn complete-topic" disabled data-roadmap="{{ roadmap.id }}" data-topic="{{ topic.name }}">
+                        <i class="fas fa-check"></i> Completed
+                    </button>
+                    {% else %}
+                    <button class="btn complete-topic" data-roadmap="{{ roadmap.id }}" data-topic="{{ topic.name }}">
+                        <i class="far fa-check-circle"></i> Mark Complete
+                    </button>
+                    {% endif %}
+                    
+                    <button class="btn toggle-topic">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="topic-content">
+                <div class="topic-description">
+                    <p>{{ topic.description }}</p>
+                </div>
+                
+                {% if topic.resources %}
+                <div class="topic-resources">
+                    <h4>Resources</h4>
+                    <ul class="resources-list">
+                        {% for resource in topic.resources %}
+                        <li>{{ resource }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if topic.subtopics %}
+                <div class="subtopics-container">
+                    <h4>Subtopics</h4>
+                    
+                    {% for subtopic in topic.subtopics %}
+                    <div class="subtopic-item">
+                        <div class="subtopic-header">
+                            <h5 class="subtopic-title">{{ subtopic.name }}</h5>
+                            <span class="estimated-time">
+                                <i class="far fa-clock"></i> {{ subtopic.estimated_hours }} hours
+                            </span>
+                        </div>
+                        
+                        <div class="subtopic-description">
+                            <p>{{ subtopic.description }}</p>
+                        </div>
+                        
+                        {% if subtopic.resources %}
+                        <div class="subtopic-resources">
+                            <h6>Resources</h6>
+                            <ul class="resources-list">
+                                {% for resource in subtopic.resources %}
+                                <li>{{ resource }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quiz Modal -->
+<div id="quiz-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Generate a Quiz for {{ roadmap.title }}</h2>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="quiz-topic-selector">
+                <label for="quiz-topic-select" class="form-label">Select a topic to test your knowledge:</label>
+                <select id="quiz-topic-select" class="form-select">
+                    <option value="{{ roadmap.title }}">All topics</option>
+                    {% for topic in roadmap.topics %}
+                    <option value="{{ topic.name }}">{{ topic.name }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button id="generate-quiz-submit" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Generate Quiz
+                </button>
+            </div>
+            
+            <div id="quiz-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .roadmap-container {
+        margin-bottom: 40px;
+    }
+    
+    .roadmap-header {
+        margin-bottom: 30px;
+    }
+    
+    .roadmap-title {
+        font-size: 32px;
+        margin-bottom: 10px;
+        background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .roadmap-description {
+        font-size: 16px;
+        margin-bottom: 20px;
+        max-width: 800px;
+    }
+    
+    .roadmap-progress {
+        margin-top: 20px;
+    }
+    
+    .progress-bar-container {
+        max-width: 800px;
+    }
+    
+    .progress-bar {
+        height: 8px;
+        background-color: var(--bg-tertiary);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background-color: var(--accent-primary);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+    
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .progress-percentage {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--accent-primary);
+    }
+    
+    .progress-text {
+        color: var(--text-secondary);
+    }
+    
+    .controls-bar {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .topics-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .topic-card {
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        transition: var(--transition);
+        border-left: 3px solid var(--text-secondary);
+    }
+    
+    .topic-card.completed {
+        border-left-color: var(--success);
+    }
+    
+    .topic-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        cursor: pointer;
+        background-color: var(--bg-secondary);
+    }
+    
+    .topic-title-container {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .topic-title {
+        margin: 0;
+        font-size: 18px;
+    }
+    
+    .estimated-time {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .topic-controls {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .topic-content {
+        padding: 0 20px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease, padding 0.5s ease;
+    }
+    
+    .topic-card.expanded .topic-content {
+        padding: 20px;
+        max-height: 2000px;
+    }
+    
+    .topic-card.expanded .toggle-topic i {
+        transform: rotate(180deg);
+    }
+    
+    .topic-description {
+        margin-bottom: 20px;
+    }
+    
+    .topic-resources {
+        margin-bottom: 20px;
+    }
+    
+    .topic-resources h4, .subtopics-container h4 {
+        margin-bottom: 10px;
+        font-size: 16px;
+    }
+    
+    .resources-list {
+        padding-left: 20px;
+    }
+    
+    .resources-list li {
+        margin-bottom: 5px;
+    }
+    
+    .subtopics-container {
+        padding-left: 0;
+        border-left: none;
+    }
+    
+    .subtopic-item {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .subtopic-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .subtopic-title {
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .subtopic-description {
+        margin-bottom: 15px;
+    }
+    
+    .subtopic-resources h6 {
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .toggle-topic {
+        background-color: transparent;
+        border: none;
+        color: var(--text-secondary);
+        padding: 5px;
+    }
+    
+    .toggle-topic i {
+        transition: transform 0.3s ease;
+    }
+    
+    /* Quiz Modal Styles */
+    .quiz-topic-selector {
+        margin-bottom: 20px;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 12px;
+        border-radius: var(--border-radius);
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 15px;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff' width='18px' height='18px'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+    
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+    
+    .modal-content {
+        background-color: var(--bg-secondary);
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: var(--border-radius);
+        max-width: 800px;
+        box-shadow: var(--box-shadow);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+    }
+    
+    .modal-close {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    @media (max-width: 768px) {
+        .topic-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .topic-controls {
+            margin-top: 15px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .controls-bar {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle topic content
+        const topicHeaders = document.querySelectorAll('.topic-header');
+        const toggleButtons = document.querySelectorAll('.toggle-topic');
+        
+        topicHeaders.forEach(header => {
+            header.addEventListener('click', function(e) {
+                if (!e.target.closest('.complete-topic')) {
+                    const topicCard = this.closest('.topic-card');
+                    topicCard.classList.toggle('expanded');
+                }
+            });
+        });
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const topicCard = this.closest('.topic-card');
+                topicCard.classList.toggle('expanded');
+            });
+        });
+        
+        // Expand/Collapse all
+        const expandAllBtn = document.getElementById('expand-all-btn');
+        const collapseAllBtn = document.getElementById('collapse-all-btn');
+        const topicCards = document.querySelectorAll('.topic-card');
+        
+        if (expandAllBtn) {
+            expandAllBtn.addEventListener('click', function() {
+                topicCards.forEach(card => {
+                    card.classList.add('expanded');
+                });
+            });
+        }
+        
+        if (collapseAllBtn) {
+            collapseAllBtn.addEventListener('click', function() {
+                topicCards.forEach(card => {
+                    card.classList.remove('expanded');
+                });
+            });
+        }
+        
+        // Quiz modal
+        const quizBtn = document.getElementById('generate-quiz-btn');
+        const quizModal = document.getElementById('quiz-modal');
+        const modalClose = document.querySelector('.modal-close');
+        const generateQuizSubmit = document.getElementById('generate-quiz-submit');
+        const quizTopicSelect = document.getElementById('quiz-topic-select');
+        const quizContainer = document.getElementById('quiz-container');
+        
+        if (quizBtn && quizModal) {
+            quizBtn.addEventListener('click', function() {
+                quizModal.style.display = 'block';
+            });
+        }
+        
+        if (modalClose) {
+            modalClose.addEventListener('click', function() {
+                quizModal.style.display = 'none';
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === quizModal) {
+                quizModal.style.display = 'none';
+            }
+        });
+        
+        // Generate quiz
+        if (generateQuizSubmit && quizTopicSelect && quizContainer) {
+            generateQuizSubmit.addEventListener('click', function() {
+                const topic = quizTopicSelect.value;
+                
+                // Show loading state
+                quizContainer.innerHTML = '<div class="loading">Generating quiz...</div>';
+                
+                // Call API to generate quiz
+                fetch('/api/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ topic: topic })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        quizContainer.innerHTML = `<p class="error">${data.error}</p>`;
+                        return;
+                    }
+                    
+                    // Render quiz
+                    renderQuiz(data.quiz, quizContainer);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    quizContainer.innerHTML = '<p class="error">Error generating quiz</p>';
+                });
+            });
+        }
+        
+        // Function to render quiz (defined in main.js)
+        function renderQuiz(quiz, container) {
+            container.innerHTML = '';
+            
+            if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+                container.innerHTML = '<p>No questions available</p>';
+                return;
+            }
+            
+            const quizEl = document.createElement('div');
+            quizEl.className = 'quiz';
+            
+            quiz.questions.forEach((q, qIndex) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = 'question-card';
+                
+                // Question number
+                const questionNumber = document.createElement('div');
+                questionNumber.className = 'question-number';
+                questionNumber.textContent = `Question ${qIndex + 1}`;
+                
+                // Question text
+                const questionText = document.createElement('div');
+                questionText.className = 'question-text';
+                questionText.textContent = q.question;
+                
+                // Options
+                const optionsList = document.createElement('ul');
+                optionsList.className = 'options-list';
+                
+                q.options.forEach((option, oIndex) => {
+                    const optionItem = document.createElement('li');
+                    optionItem.className = 'option-item';
+                    optionItem.textContent = option;
+                    optionItem.setAttribute('data-index', oIndex);
+                    
+                    optionItem.addEventListener('click', function() {
+                        // Remove selected class from all options
+                        const allOptions = optionsList.querySelectorAll('.option-item');
+                        allOptions.forEach(opt => {
+                            opt.classList.remove('selected');
+                            opt.classList.remove('correct');
+                            opt.classList.remove('incorrect');
+                        });
+                        
+                        // Add selected class to clicked option
+                        this.classList.add('selected');
+                        
+                        // Check if answer is correct
+                        const correctIndex = q.correct_index;
+                        
+                        if (oIndex === correctIndex) {
+                            this.classList.add('correct');
+                            showToast('Correct!', 'success');
+                        } else {
+                            this.classList.add('incorrect');
+                            allOptions[correctIndex].classList.add('correct');
+                            showToast('Incorrect!', 'error');
+                        }
+                    });
+                    
+                    optionsList.appendChild(optionItem);
+                });
+                
+                // Append elements to question card
+                questionCard.appendChild(questionNumber);
+                questionCard.appendChild(questionText);
+                questionCard.appendChild(optionsList);
+                
+                // Append question card to quiz
+                quizEl.appendChild(questionCard);
+            });
+            
+            container.appendChild(quizEl);
+        }
+        
+        // Toast notification function (defined in main.js)
+        function showToast(message, type = 'info') {
+            // Create toast element if it doesn't exist
+            let toast = document.getElementById('toast');
+            
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                document.body.appendChild(toast);
+                
+                // Add styles
+                toast.style.position = 'fixed';
+                toast.style.bottom = '20px';
+                toast.style.right = '20px';
+                toast.style.padding = '12px 20px';
+                toast.style.borderRadius = '12px';
+                toast.style.zIndex = '9999';
+                toast.style.minWidth = '250px';
+                toast.style.backdropFilter = 'blur(8px)';
+                toast.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+            }
+            
+            // Set color based on type
+            if (type === 'success') {
+                toast.style.backgroundColor = 'rgba(76, 175, 80, 0.8)';
+            } else if (type === 'error') {
+                toast.style.backgroundColor = 'rgba(244, 67, 54, 0.8)';
+            } else if (type === 'warning') {
+                toast.style.backgroundColor = 'rgba(255, 152, 0, 0.8)';
+            } else {
+                toast.style.backgroundColor = 'rgba(33, 150, 243, 0.8)';
+            }
+            
+            // Set message and show
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(20px)';
+            }, 3000);
+        }
+    });
+</script>
+{% endblock %} 
