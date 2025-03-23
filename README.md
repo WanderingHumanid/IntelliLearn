@@ -11,7 +11,7 @@ A personalized learning platform with AI-powered roadmaps, interactive forums, a
 - **Quizzes**: Test your knowledge with AI-generated quizzes
 - **Leaderboards**: Track your progress against other learners
 
- **Showcase:**
+ ## Showcase:
  - Home Page:
 ![HomePage](images/homepage.gif)
 - Dashboard:
