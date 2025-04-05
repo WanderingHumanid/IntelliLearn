@@ -21,8 +21,10 @@
                 <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> AI Assistant</a></li>
                 <li><a href="{{ url_for('roadmap_creator') }}"><i class="fas fa-map"></i> Roadmap Creator</a></li>
+                <li><a href="{{ url_for('study_resources') }}"><i class="fas fa-book"></i> Study Resources</a></li>
                 <li><a href="{{ url_for('forum') }}"><i class="fas fa-users"></i> Community Forum</a></li>
                 <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+                <li><a href="{{ url_for('premium') }}"><i class="fas fa-crown"></i> Premium</a></li>
                 <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 {% else %}
                 <li><a href="{{ url_for('home') }}"><i class="fas fa-home"></i> Home</a></li>
@@ -38,6 +40,11 @@
                 <div class="user-details">
                     <p class="username">{{ session['username'] }}</p>
                     <p class="user-level">{% if user is defined %}Level {{ user.level }}{% else %}User{% endif %}</p>
+                    {% if user is defined and user.is_premium %}
+                    <div class="premium-badge">
+                        <i class="fas fa-crown"></i> Premium
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -61,6 +68,15 @@
                 {% endif %}
             </div>
             <div class="content-body">
+                {% if get_flashed_messages() %}
+                <div class="flash-messages">
+                    {% for category, message in get_flashed_messages(with_categories=true) %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% block content %}{% endblock %}
             </div>
         </main>

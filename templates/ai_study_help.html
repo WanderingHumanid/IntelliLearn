@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}AI Study Help - IntelliLearn{% endblock %}
+
+{% block page_title %}AI Study Help{% endblock %}
+
+{% block content %}
+<div class="ai-study-help-container">
+    <div class="help-intro">
+        <div class="premium-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <h3>Premium AI Study Assistant</h3>
+        <p>Get expert help with any subject or topic. Our AI assistant will provide detailed explanations, examples, and guidance tailored to your learning needs.</p>
+    </div>
+    
+    <div class="question-container">
+        <form method="POST" action="{{ url_for('ai_study_help') }}" class="question-form">
+            <div class="form-group">
+                <label for="topic">Subject/Topic</label>
+                <input type="text" id="topic" name="topic" required 
+                    placeholder="Enter the subject or topic (e.g. Calculus, Machine Learning, Chemistry)"
+                    value="{{ topic if topic else '' }}" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="question">Your Question</label>
+                <textarea id="question" name="question" rows="3" required 
+                    placeholder="Ask any question related to this topic..."
+                    class="form-input">{{ question if question else '' }}</textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Ask Question
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    {% if answer %}
+    <div class="answer-container">
+        <div class="answer-header">
+            <h3>AI Response</h3>
+        </div>
+        <div class="answer-content">
+            <div class="topic-badge">{{ topic }}</div>
+            <div class="question-display">
+                <i class="fas fa-question-circle"></i>
+                <p>{{ question }}</p>
+            </div>
+            <div class="answer-text">
+                <div id="markdown-answer">{{ answer|safe }}</div>
+            </div>
+        </div>
+        <div class="answer-footer">
+            <button class="btn btn-outline" onclick="newQuestion()">
+                <i class="fas fa-plus"></i> New Question
+            </button>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if error %}
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <h3>Error</h3>
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="help-suggestions">
+        <h3>Suggested Topics to Explore</h3>
+        <div class="suggestion-buttons">
+            <button onclick="setTopic('Mathematics')" class="suggestion-btn">
+                <i class="fas fa-calculator"></i> Mathematics
+            </button>
+            <button onclick="setTopic('Physics')" class="suggestion-btn">
+                <i class="fas fa-atom"></i> Physics
+            </button>
+            <button onclick="setTopic('Computer Science')" class="suggestion-btn">
+                <i class="fas fa-laptop-code"></i> Computer Science
+            </button>
+            <button onclick="setTopic('Biology')" class="suggestion-btn">
+                <i class="fas fa-dna"></i> Biology
+            </button>
+            <button onclick="setTopic('Chemistry')" class="suggestion-btn">
+                <i class="fas fa-flask"></i> Chemistry
+            </button>
+            <button onclick="setTopic('History')" class="suggestion-btn">
+                <i class="fas fa-book"></i> History
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .ai-study-help-container {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .help-intro {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .premium-icon {
+        font-size: 2.5rem;
+        color: #FFD700;
+        margin-bottom: 15px;
+    }
+    
+    .help-intro h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.5rem;
+    }
+    
+    .help-intro p {
+        margin: 0;
+        color: var(--text-secondary);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .question-container {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .question-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .form-input {
+        padding: 12px 15px;
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 16px;
+        width: 100%;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .answer-container {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .answer-header {
+        padding: 15px 25px;
+        background-color: var(--bg-tertiary);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .answer-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+    
+    .answer-content {
+        padding: 25px;
+    }
+    
+    .topic-badge {
+        display: inline-block;
+        background-color: var(--primary-color-light);
+        color: var(--primary-color);
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+    
+    .question-display {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 15px;
+        background-color: var(--bg-primary);
+        border-radius: var(--border-radius);
+        margin-bottom: 20px;
+    }
+    
+    .question-display i {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+        margin-top: 2px;
+    }
+    
+    .question-display p {
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .answer-text {
+        background-color: var(--bg-primary);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        line-height: 1.6;
+    }
+    
+    .answer-footer {
+        padding: 15px 25px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .error-container {
+        background-color: rgba(var(--error-rgb), 0.1);
+        border: 1px solid rgba(var(--error-rgb), 0.3);
+        padding: 20px;
+        border-radius: var(--border-radius);
+        text-align: center;
+    }
+    
+    .error-icon {
+        color: var(--error-color);
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .error-container h3 {
+        margin: 0 0 10px 0;
+        color: var(--error-color);
+    }
+    
+    .error-container p {
+        margin: 0;
+    }
+    
+    .help-suggestions {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .help-suggestions h3 {
+        margin: 0 0 15px 0;
+        font-size: 1.2rem;
+    }
+    
+    .suggestion-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .suggestion-btn {
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 8px 15px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .suggestion-btn:hover {
+        background-color: var(--bg-tertiary);
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .suggestion-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format answer with markdown if needed
+        const answerElement = document.getElementById('markdown-answer');
+        if (answerElement && typeof marked !== 'undefined') {
+            answerElement.innerHTML = marked.parse(answerElement.textContent);
+        }
+    });
+    
+    function setTopic(topic) {
+        document.getElementById('topic').value = topic;
+        document.getElementById('question').focus();
+    }
+    
+    function newQuestion() {
+        // Reset the form
+        document.querySelector('.question-form').reset();
+        
+        // Hide the answer container
+        const answerContainer = document.querySelector('.answer-container');
+        if (answerContainer) {
+            answerContainer.style.display = 'none';
+        }
+        
+        // Focus on the topic input
+        document.getElementById('topic').focus();
+    }
+</script>
+{% endblock %} 

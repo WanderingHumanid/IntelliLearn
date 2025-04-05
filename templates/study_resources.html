@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Study Resources - IntelliLearn{% endblock %}
+
+{% block page_title %}Study Resources{% endblock %}
+
+{% block content %}
+<div class="study-resources-container">
+    <div class="resources-header">
+        <div class="resources-actions">
+            <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Resource
+            </a>
+            {% if user.is_premium %}
+            <a href="{{ url_for('ai_study_help') }}" class="btn btn-secondary">
+                <i class="fas fa-robot"></i> AI Study Help
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="resources-filters">
+            <div class="filter-group">
+                <label for="type-filter">Type:</label>
+                <select id="type-filter" class="filter-select" onchange="applyFilters()">
+                    <option value="">All Types</option>
+                    <option value="video" {% if selected_type == 'video' %}selected{% endif %}>Video Lectures</option>
+                    <option value="notes" {% if selected_type == 'notes' %}selected{% endif %}>Study Notes</option>
+                    <option value="questions" {% if selected_type == 'questions' %}selected{% endif %}>Practice Questions</option>
+                    <option value="book" {% if selected_type == 'book' %}selected{% endif %}>Books</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="subject-filter">Subject:</label>
+                <select id="subject-filter" class="filter-select" onchange="applyFilters()">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject }}" {% if selected_subject == subject %}selected{% endif %}>{{ subject }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button onclick="clearFilters()" class="btn btn-outline">
+                <i class="fas fa-times"></i> Clear Filters
+            </button>
+        </div>
+    </div>
+
+    {% if resources %}
+    <div class="resources-grid">
+        {% for resource in resources %}
+        <div class="resource-card {% if resource.is_premium %}premium-resource{% endif %}">
+            <div class="resource-header">
+                <div class="resource-type">
+                    {% if resource.resource_type == 'video' %}
+                    <i class="fas fa-video"></i> Video
+                    {% elif resource.resource_type == 'notes' %}
+                    <i class="fas fa-file-alt"></i> Notes
+                    {% elif resource.resource_type == 'questions' %}
+                    <i class="fas fa-question-circle"></i> Questions
+                    {% elif resource.resource_type == 'book' %}
+                    <i class="fas fa-book"></i> Book
+                    {% else %}
+                    <i class="fas fa-file"></i> Resource
+                    {% endif %}
+                </div>
+                {% if resource.is_premium %}
+                <div class="premium-badge">
+                    <i class="fas fa-crown"></i> Premium
+                </div>
+                {% endif %}
+            </div>
+            <div class="resource-content">
+                <h3 class="resource-title">{{ resource.title }}</h3>
+                <p class="resource-description">{{ resource.description }}</p>
+                <div class="resource-subject">{{ resource.subject }}</div>
+            </div>
+            <div class="resource-footer">
+                {% if resource.is_premium and not user.is_premium %}
+                <a href="{{ url_for('premium') }}" class="btn btn-premium">
+                    <i class="fas fa-crown"></i> Unlock with Premium
+                </a>
+                {% else %}
+                <a href="{{ resource.content }}" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt"></i> Access Resource
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-resources">
+        <div class="empty-icon">
+            <i class="fas fa-book"></i>
+        </div>
+        <h3>No Resources Found</h3>
+        <p>Try adjusting your filters or add a new resource.</p>
+        <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Resource
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .study-resources-container {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .resources-header {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .resources-actions {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .resources-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .filter-group label {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .filter-select {
+        padding: 8px 12px;
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        min-width: 180px;
+        font-size: 0.9rem;
+    }
+    
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .resource-card {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .resource-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .premium-resource {
+        border: 2px solid gold;
+    }
+    
+    .resource-header {
+        padding: 15px;
+        background-color: var(--bg-tertiary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .resource-type {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .premium-badge {
+        background-color: gold;
+        color: #333;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .resource-content {
+        padding: 15px;
+        flex: 1;
+    }
+    
+    .resource-title {
+        margin: 0 0 10px 0;
+        font-size: 1.2rem;
+    }
+    
+    .resource-description {
+        margin: 0 0 15px 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .resource-subject {
+        display: inline-block;
+        background-color: var(--bg-primary);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        padding: 5px 10px;
+        border-radius: 12px;
+    }
+    
+    .resource-footer {
+        padding: 15px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .empty-resources {
+        text-align: center;
+        padding: 50px 0;
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        color: var(--text-secondary);
+        opacity: 0.5;
+        margin-bottom: 20px;
+    }
+    
+    .empty-resources h3 {
+        margin: 0 0 10px 0;
+    }
+    
+    .empty-resources p {
+        margin: 0 0 20px 0;
+        color: var(--text-secondary);
+    }
+    
+    .btn-premium {
+        background-color: gold;
+        color: #333;
+        border: none;
+        padding: 8px 12px;
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: background-color 0.2s ease;
+    }
+    
+    .btn-premium:hover {
+        background-color: #e6c200;
+    }
+    
+    @media (max-width: 768px) {
+        .resources-header {
+            flex-direction: column;
+        }
+        
+        .resources-filters {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-select {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function applyFilters() {
+        const typeFilter = document.getElementById('type-filter').value;
+        const subjectFilter = document.getElementById('subject-filter').value;
+        
+        let url = "{{ url_for('study_resources') }}";
+        const params = [];
+        
+        if (typeFilter) {
+            params.push(`type=${typeFilter}`);
+        }
+        
+        if (subjectFilter) {
+            params.push(`subject=${subjectFilter}`);
+        }
+        
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+        
+        window.location.href = url;
+    }
+    
+    function clearFilters() {
+        window.location.href = "{{ url_for('study_resources') }}";
+    }
+</script>
+{% endblock %} 

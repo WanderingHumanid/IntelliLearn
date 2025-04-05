@@ -149,7 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const topic = roadmapTopic.value.trim();
-            if (!topic) return;
+            if (!topic) {
+                showToast('Please enter a topic for your roadmap', 'error');
+                return;
+            }
             
             // Show loading indicator
             if (loadingIndicator) {
@@ -159,6 +162,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear previous results
             roadmapResult.innerHTML = '';
             
+            // Show a message to user
+            roadmapResult.innerHTML = '<div class="loading-message">Creating your roadmap. This may take up to a minute...</div>';
+            
             // Generate roadmap from server
             fetch('/api/create-roadmap', {
                 method: 'POST',
@@ -167,7 +173,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ topic: topic })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Failed to create roadmap');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 // Hide loading indicator
                 if (loadingIndicator) {
@@ -176,8 +189,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.error) {
                     showToast(data.error, 'error');
+                    roadmapResult.innerHTML = '<div class="error-message">Error: ' + data.error + '</div>';
                     return;
                 }
+                
+                // Show success message
+                showToast('Roadmap created successfully!', 'success');
                 
                 // Redirect to roadmap view
                 window.location.href = `/roadmap/${data.roadmap.id}`;
@@ -187,7 +204,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (loadingIndicator) {
                     loadingIndicator.style.display = 'none';
                 }
-                showToast('Error creating roadmap', 'error');
+                showToast(error.message || 'Error creating roadmap', 'error');
+                roadmapResult.innerHTML = '<div class="error-message">Error: ' + (error.message || 'Failed to create roadmap') + '</div>';
             });
         });
     }

@@ -25,7 +25,7 @@ This application is built with:
 
 - **Backend**: Flask (Python)
 - **Frontend**: HTML, CSS, JavaScript
-- **Database**: JSON file-based storage
+- **Database**: SQLite with SQLAlchemy
 - **AI Integration**: Ollama API with LLama 3.2 model
 
 ## Prerequisites
@@ -58,6 +58,11 @@ This application is built with:
    ollama run llama3.2
    ```
 
+5. Run the database migration script (only needed once):
+   ```
+   python migrate_db.py
+   ```
+
 ## Running the Application
 
 1. Start the Flask server:
@@ -75,9 +80,10 @@ This application is built with:
 ```
 learning-roadmap-platform/
 ├── app.py               # Main Flask application
+├── models.py            # SQLAlchemy database models
+├── migrate_db.py        # Database migration script
 ├── requirements.txt     # Python dependencies
-├── data/                # Database storage
-│   └── db.json          # JSON database file
+├── intellilearn.db      # SQLite database file
 ├── static/              # Static assets
 │   ├── css/             # Stylesheets
 │   └── js/              # JavaScript files
@@ -91,16 +97,21 @@ learning-roadmap-platform/
     ├── forum.html       # Community forum
     ├── leaderboard.html # User rankings
     ├── roadmap_creator.html # Roadmap creation tool
-    └── roadmap_view.html   # Roadmap view page
+    ├── roadmap_view.html   # Roadmap view page
+    ├── study_resources.html # Study resources page
+    ├── ai_study_help.html  # AI study help (premium feature)
+    └── premium.html       # Premium features page
 ```
 
 ## Data Storage
 
-The application uses a simple JSON file-based storage system located in `data/db.json`. The database contains:
+The application uses SQLite with SQLAlchemy for data storage. The database includes:
 
 - User accounts and profiles
 - Learning roadmaps
 - Forum posts and comments
+- Study resources
+- Premium features
 
 ## Future Enhancements
 
@@ -109,5 +120,5 @@ The application uses a simple JSON file-based storage system located in `data/db
 - Document/Image processing through Tesseract/OCR.
 - More accessibility options in the Forum section
 - Mobile application support
-- Proper database implementation (PostgreSQL/MongoDB)
+- Migrate to a more scalable database (PostgreSQL/MongoDB)
 - OAuth authentication

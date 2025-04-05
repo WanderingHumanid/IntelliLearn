@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Features - IntelliLearn{% endblock %}
+
+{% block page_title %}Premium Features{% endblock %}
+
+{% block content %}
+<div class="premium-container">
+    <div class="premium-header">
+        <div class="premium-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <h2>Unlock Premium Features</h2>
+        <p>Accelerate your learning journey with our premium features</p>
+    </div>
+    
+    {% if is_premium %}
+    <div class="premium-active-notice">
+        <div class="notice-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="notice-content">
+            <h3>You're a Premium Member</h3>
+            <p>Your premium subscription is active until {{ premium_until|timestamp_format }}</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="features-grid">
+        {% for feature in features %}
+        <div class="feature-card">
+            <div class="feature-icon">
+                {% if feature.name == "AI Responses" %}
+                <i class="fas fa-robot"></i>
+                {% elif feature.name == "Community AI" %}
+                <i class="fas fa-comments"></i>
+                {% elif feature.name == "Study AI" %}
+                <i class="fas fa-book"></i>
+                {% elif feature.name == "Unlimited Roadmaps" %}
+                <i class="fas fa-map"></i>
+                {% else %}
+                <i class="fas fa-star"></i>
+                {% endif %}
+            </div>
+            <h3>{{ feature.name }}</h3>
+            <p>{{ feature.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if not is_premium %}
+    <div class="premium-plans">
+        <h3>Choose Your Plan</h3>
+        <form method="POST" action="{{ url_for('upgrade_premium') }}" class="plans-form">
+            <div class="plans-grid">
+                <div class="plan-card" onclick="selectPlan('1')">
+                    <input type="radio" name="plan" id="plan-1" value="1" class="plan-radio">
+                    <label for="plan-1" class="plan-label">
+                        <div class="plan-duration">1 Month</div>
+                        <div class="plan-price">$0.99</div>
+                        <div class="plan-billing">Billed monthly</div>
+                    </label>
+                </div>
+                
+                <div class="plan-card" onclick="selectPlan('3')">
+                    <input type="radio" name="plan" id="plan-3" value="3" class="plan-radio">
+                    <label for="plan-3" class="plan-label">
+                        <div class="plan-duration">3 Months</div>
+                        <div class="plan-price">$2.49</div>
+                        <div class="plan-save">Save 25%</div>
+                    </label>
+                </div>
+                
+                <div class="plan-card recommended" onclick="selectPlan('6')">
+                    <div class="recommended-badge">Most Popular</div>
+                    <input type="radio" name="plan" id="plan-6" value="6" class="plan-radio" checked>
+                    <label for="plan-6" class="plan-label">
+                        <div class="plan-duration">6 Months</div>
+                        <div class="plan-price">$4.50</div>
+                        <div class="plan-save">Save 40%</div>
+                    </label>
+                </div>
+                
+                <div class="plan-card" onclick="selectPlan('12')">
+                    <input type="radio" name="plan" id="plan-12" value="12" class="plan-radio">
+                    <label for="plan-12" class="plan-label">
+                        <div class="plan-duration">12 Months</div>
+                        <div class="plan-price">$8.99</div>
+                        <div class="plan-save">Save 50%!</div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="plans-submit">
+                <button type="submit" class="btn btn-premium">
+                    <i class="fas fa-crown"></i> Upgrade Now
+                </button>
+                <p class="plans-disclaimer">
+                    All plans include full access to all premium features. You can cancel anytime.
+                </p>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+    
+    <div class="premium-faq">
+        <h3>Frequently Asked Questions</h3>
+        <div class="faq-list">
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h4>What are the benefits of a premium subscription?</h4>
+                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <p>Premium subscribers get unlimited roadmap generation, more AI responses per day, AI assistance in the community forum, and exclusive access to premium study resources.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h4>Can I cancel my subscription anytime?</h4>
+                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes, you can cancel your subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h4>How many roadmaps can I create with premium?</h4>
+                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <p>Premium members can create unlimited learning roadmaps. Free users are limited to 3 roadmaps per week.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h4>What payment methods do you accept?</h4>
+                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="faq-answer">
+                    <p>We accept all major credit cards, PayPal, and other popular payment methods.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .premium-container {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .premium-header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .premium-icon {
+        font-size: 3rem;
+        color: #FFD700;
+        margin-bottom: 15px;
+    }
+    
+    .premium-header h2 {
+        margin: 0 0 10px 0;
+        font-size: 2rem;
+    }
+    
+    .premium-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+    
+    .premium-active-notice {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background-color: rgba(75, 181, 67, 0.1);
+        border: 1px solid rgba(75, 181, 67, 0.3);
+        padding: 20px;
+        border-radius: var(--border-radius);
+    }
+    
+    .notice-icon {
+        font-size: 2.5rem;
+        color: #4BB543;
+    }
+    
+    .notice-content h3 {
+        margin: 0 0 5px 0;
+        color: #4BB543;
+    }
+    
+    .notice-content p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .feature-card {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .feature-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background-color: var(--bg-tertiary);
+        color: #FFD700;
+        font-size: 1.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+    }
+    
+    .feature-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.3rem;
+    }
+    
+    .feature-card p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .premium-plans {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .premium-plans h3 {
+        text-align: center;
+        margin: 0 0 20px 0;
+        font-size: 1.5rem;
+    }
+    
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .plan-card {
+        background-color: var(--bg-primary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    
+    .plan-card:hover, .plan-card.selected {
+        border-color: #FFD700;
+        transform: translateY(-5px);
+    }
+    
+    .recommended {
+        border-color: #FFD700;
+    }
+    
+    .recommended-badge {
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #FFD700;
+        color: #333;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .plan-radio {
+        position: absolute;
+        opacity: 0;
+    }
+    
+    .plan-label {
+        display: block;
+        cursor: pointer;
+        text-align: center;
+    }
+    
+    .plan-duration {
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+    }
+    
+    .plan-price {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: var(--primary-color);
+    }
+    
+    .plan-billing {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+    }
+    
+    .plan-save {
+        display: inline-block;
+        background-color: rgba(75, 181, 67, 0.1);
+        color: #4BB543;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .plans-submit {
+        text-align: center;
+    }
+    
+    .btn-premium {
+        background-color: #FFD700;
+        color: #333;
+        border: none;
+        padding: 12px 24px;
+        border-radius: var(--border-radius);
+        font-size: 1.1rem;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-premium:hover {
+        background-color: #E6C200;
+        transform: translateY(-2px);
+    }
+    
+    .plans-disclaimer {
+        margin: 15px 0 0 0;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .premium-faq {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .premium-faq h3 {
+        text-align: center;
+        margin: 0 0 20px 0;
+        font-size: 1.5rem;
+    }
+    
+    .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .faq-item {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    
+    .faq-question {
+        padding: 15px 20px;
+        background-color: var(--bg-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    
+    .faq-question h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    .faq-toggle {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        transition: transform 0.2s ease;
+    }
+    
+    .faq-item.active .faq-toggle {
+        transform: rotate(180deg);
+    }
+    
+    .faq-answer {
+        padding: 0 20px;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .faq-item.active .faq-answer {
+        padding: 15px 20px;
+        max-height: 500px;
+    }
+    
+    .faq-answer p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+    
+    @media (max-width: 768px) {
+        .plans-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle FAQ toggles
+        const faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            question.addEventListener('click', () => {
+                // Toggle active class on clicked item
+                item.classList.toggle('active');
+                
+                // Close other items
+                faqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                    }
+                });
+            });
+        });
+        
+        // Show the first FAQ item by default
+        if (faqItems.length > 0) {
+            faqItems[0].classList.add('active');
+        }
+    });
+    
+    function selectPlan(planId) {
+        // Update radio selection
+        document.getElementById('plan-' + planId).checked = true;
+        
+        // Update visual selection
+        const plans = document.querySelectorAll('.plan-card');
+        plans.forEach(plan => {
+            plan.classList.remove('selected');
+        });
+        
+        const selectedPlan = document.querySelector(`label[for="plan-${planId}"]`).closest('.plan-card');
+        selectedPlan.classList.add('selected');
+    }
+</script>
+{% endblock %} 
