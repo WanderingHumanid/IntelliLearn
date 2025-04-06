@@ -75,12 +75,13 @@
                             <h4 class="roadmap-title">{{ roadmap.title }}</h4>
                             
                             {% set completed = roadmap.completed_topics|length %}
-                            {% set total = 0 %}
-                            {% for topic in roadmap.topics %}
-                                {% set total = total + 1 %}
-                            {% endfor %}
+                            {% set total = roadmap.topics|length %}
                             
-                            {% set progress = (completed / total * 100)|int if total > 0 else 0 %}
+                            {% if total > 0 %}
+                                {% set progress = (completed / total * 100)|int %}
+                            {% else %}
+                                {% set progress = 0 %}
+                            {% endif %}
                             
                             <div class="roadmap-progress">
                                 <div class="progress-circle" data-progress="{{ progress }}">
@@ -96,7 +97,13 @@
                             <div class="roadmap-stats">
                                 <div class="roadmap-stat">
                                     <i class="fas fa-list-check"></i>
-                                    <span>{{ completed }}/{{ total }} topics</span>
+                                    <span>
+                                        {% if total > 0 %}
+                                            {{ completed }}/{{ total }} topics
+                                        {% else %}
+                                            No topics yet
+                                        {% endif %}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -105,6 +112,9 @@
                             <a href="{{ url_for('view_roadmap', roadmap_id=roadmap.id) }}" class="btn btn-primary">
                                 <i class="fas fa-arrow-right"></i> Continue
                             </a>
+                            <button class="btn btn-danger delete-roadmap" data-roadmap-id="{{ roadmap.id }}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>
                     </div>
                     {% endfor %}
@@ -233,40 +243,6 @@
                             <p>Join discussions with other learners</p>
                         </div>
                     </a>
-                </div>
-            </section>
-            
-            <section class="dashboard-section leaderboard-preview-section">
-                <div class="section-header">
-                    <h3>Leaderboard</h3>
-                    <a href="{{ url_for('leaderboard') }}" class="section-link">View Full</a>
-                </div>
-                
-                <div class="leaderboard-preview">
-                    <div class="leaderboard-headers">
-                        <div class="leaderboard-header-rank">Rank</div>
-                        <div class="leaderboard-header-user">User</div>
-                        <div class="leaderboard-header-points">Points</div>
-                    </div>
-                    
-                    <!-- This would be populated with actual leaderboard data -->
-                    <div class="leaderboard-entries">
-                        <div class="leaderboard-entry">
-                            <div class="leaderboard-rank">1</div>
-                            <div class="leaderboard-user">User1</div>
-                            <div class="leaderboard-points">1200</div>
-                        </div>
-                        <div class="leaderboard-entry">
-                            <div class="leaderboard-rank">2</div>
-                            <div class="leaderboard-user">User2</div>
-                            <div class="leaderboard-points">980</div>
-                        </div>
-                        <div class="leaderboard-entry">
-                            <div class="leaderboard-rank">3</div>
-                            <div class="leaderboard-user">User3</div>
-                            <div class="leaderboard-points">850</div>
-                        </div>
-                    </div>
                 </div>
             </section>
         </div>
@@ -496,6 +472,33 @@
     .roadmap-footer {
         padding: 15px;
         border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .roadmap-footer .btn {
+        flex: 1;
+        margin: 0 5px;
+    }
+    
+    .roadmap-footer .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .roadmap-footer .btn-danger:hover {
+        background-color: var(--danger-color-dark);
+        transform: translateY(-2px);
+    }
+    
+    .roadmap-footer .btn-danger i {
+        margin-right: 5px;
     }
     
     .quick-actions {
@@ -562,45 +565,6 @@
     .empty-state p {
         margin: 0 0 20px 0;
         color: var(--text-secondary);
-    }
-    
-    .leaderboard-preview {
-        font-size: 0.9rem;
-    }
-    
-    .leaderboard-headers {
-        display: flex;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-color);
-        font-weight: bold;
-        color: var(--text-secondary);
-    }
-    
-    .leaderboard-entry {
-        display: flex;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--border-color-light);
-    }
-    
-    .leaderboard-entry:last-child {
-        border-bottom: none;
-    }
-    
-    .leaderboard-header-rank,
-    .leaderboard-rank {
-        flex: 0 0 40px;
-        text-align: center;
-    }
-    
-    .leaderboard-header-user,
-    .leaderboard-user {
-        flex: 1;
-    }
-    
-    .leaderboard-header-points,
-    .leaderboard-points {
-        flex: 0 0 80px;
-        text-align: right;
     }
     
     .achievements-container {
@@ -778,6 +742,55 @@
             const progress = circle.getAttribute('data-progress');
             // Apply a conic gradient for the progress circle
             circle.style.background = `conic-gradient(var(--primary-color) ${progress}%, var(--bg-primary) 0%)`;
+        });
+
+        // Handle roadmap deletion
+        const deleteButtons = document.querySelectorAll('.delete-roadmap');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const roadmapId = this.getAttribute('data-roadmap-id');
+                if (confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+                    fetch(`/api/delete-roadmap/${roadmapId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                            return;
+                        }
+                        // Remove the roadmap card from the DOM
+                        const roadmapCard = this.closest('.roadmap-card');
+                        roadmapCard.remove();
+                        
+                        // Check if there are any roadmaps left
+                        const remainingRoadmaps = document.querySelectorAll('.roadmap-card');
+                        if (remainingRoadmaps.length === 0) {
+                            // Show empty state
+                            const roadmapsSection = document.querySelector('.roadmaps-section');
+                            roadmapsSection.innerHTML = `
+                                <div class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-map-marked-alt"></i>
+                                    </div>
+                                    <h3>No Roadmaps Yet</h3>
+                                    <p>Create your first learning roadmap to get started on your learning journey.</p>
+                                    <a href="{{ url_for('roadmap_creator') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Create a Roadmap
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to delete roadmap. Please try again.');
+                    });
+                }
+            });
         });
     });
 </script>

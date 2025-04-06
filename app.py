@@ -919,6 +919,27 @@ def view_roadmap(roadmap_id):
     
     return render_template('roadmap_view.html', roadmap=roadmap_dict)
 
+@app.route('/api/delete-roadmap/<int:roadmap_id>', methods=['POST'])
+@login_required
+def delete_roadmap(roadmap_id):
+    roadmap = Roadmap.query.get_or_404(roadmap_id)
+    
+    # Check if the user owns this roadmap
+    username = session['username']
+    user = User.query.filter_by(username=username).first()
+    
+    if roadmap.creator_id != user.id:
+        return jsonify({'error': 'You do not have permission to delete this roadmap'}), 403
+    
+    try:
+        db.session.delete(roadmap)
+        db.session.commit()
+        return jsonify({'message': 'Roadmap deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting roadmap: {str(e)}")
+        return jsonify({'error': 'Failed to delete roadmap'}), 500
+
 @app.route('/profile')
 @login_required
 def profile():
