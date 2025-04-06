@@ -32,7 +32,7 @@
     
     <div id="forum-posts" class="posts-container">
         {% if posts %}
-            {% for post in posts|sort(attribute='timestamp', reverse=true) %}
+            {% for post in posts %}
             <div class="forum-post">
                 <div class="post-header">
                     <div class="post-author">
@@ -41,15 +41,34 @@
                         </div>
                         <div class="author-info">
                             <div class="author-name">{{ post.author }}</div>
-                            <div class="post-time">{{ post.timestamp|timestamp_format }}</div>
+                            <div class="post-time" data-timestamp="{{ post.timestamp }}">{{ post.timestamp|timestamp_format }}</div>
                         </div>
                     </div>
+                    {% if session.username and post.author == session.username %}
+                    <div class="post-options">
+                        <button class="btn-delete-post" data-post-id="{{ post.id }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <h3 class="post-title">{{ post.title }}</h3>
                 <div class="post-content">{{ post.content }}</div>
                 
+                {% if post.has_image %}
+                <div class="post-image">
+                    <img src="{{ url_for('static', filename='uploads/' + post.image_path) }}" alt="Post image">
+                </div>
+                {% endif %}
+                
                 <div class="post-actions">
+                    <button class="btn-action btn-like {% if post.user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}">
+                        <i class="fas fa-thumbs-up"></i> <span class="like-count">{{ post.likes }}</span>
+                    </button>
+                    <button class="btn-action btn-dislike {% if post.user_reaction == 'dislike' %}active{% endif %}" data-post-id="{{ post.id }}">
+                        <i class="fas fa-thumbs-down"></i> <span class="dislike-count">{{ post.dislikes }}</span>
+                    </button>
                     <button class="btn-action btn-comments">
                         <i class="far fa-comment"></i> {{ post.comments|length }} Comments
                     </button>
@@ -62,20 +81,49 @@
                             <div class="comment-header">
                                 <div class="comment-author">{{ comment.author }}</div>
                                 <div class="comment-time">{{ comment.timestamp|timestamp_format }}</div>
+                                {% if session.username and comment.author == session.username %}
+                                <div class="comment-options">
+                                    <button class="btn-delete-comment" data-comment-id="{{ comment.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
                             </div>
                             <div class="comment-content">{{ comment.content }}</div>
+                            
+                            {% if comment.has_image %}
+                            <div class="comment-image">
+                                <img src="{{ url_for('static', filename='uploads/' + comment.image_path) }}" alt="Comment image">
+                            </div>
+                            {% endif %}
+                            
+                            <div class="comment-actions">
+                                <button class="btn-action btn-like-comment {% if comment.user_reaction == 'like' %}active{% endif %}" data-comment-id="{{ comment.id }}">
+                                    <i class="fas fa-thumbs-up"></i> <span class="like-count">{{ comment.likes }}</span>
+                                </button>
+                                <button class="btn-action btn-dislike-comment {% if comment.user_reaction == 'dislike' %}active{% endif %}" data-comment-id="{{ comment.id }}">
+                                    <i class="fas fa-thumbs-down"></i> <span class="dislike-count">{{ comment.dislikes }}</span>
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     {% endif %}
                     
                     {% if 'username' in session %}
-                    <form class="comment-form" data-post-id="{{ post.id }}">
+                    <form class="comment-form" data-post-id="{{ post.id }}" enctype="multipart/form-data">
                         <div class="comment-input-container">
-                            <input type="text" class="comment-input" placeholder="Write a comment...">
+                            <input type="text" class="comment-input" placeholder="Write a comment..." name="content" required>
+                            <div class="comment-image-upload">
+                                <input type="file" id="comment-image-{{ post.id }}" name="image" accept="image/*" class="file-input">
+                                <label for="comment-image-{{ post.id }}" class="file-input-icon">
+                                    <i class="fas fa-image"></i>
+                                </label>
+                            </div>
                             <button type="submit" class="btn btn-primary btn-sm">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
                         </div>
+                        <div id="comment-image-preview-{{ post.id }}" class="image-preview"></div>
                     </form>
                     {% endif %}
                 </div>
@@ -108,7 +156,7 @@
             <span class="modal-close">&times;</span>
         </div>
         <div class="modal-body">
-            <form id="forum-post-form">
+            <form id="forum-post-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="post-title" class="form-label">Title</label>
                     <input type="text" id="post-title" name="title" required placeholder="What's your topic about?">
@@ -117,6 +165,18 @@
                 <div class="form-group">
                     <label for="post-content" class="form-label">Content</label>
                     <textarea id="post-content" name="content" rows="6" required placeholder="Share your thoughts, questions, or resources..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-image" class="form-label">Add Image (optional)</label>
+                    <div class="file-input-container">
+                        <input type="file" id="post-image" name="image" accept="image/*" class="file-input">
+                        <label for="post-image" class="file-input-label">
+                            <i class="fas fa-image"></i> Choose Image
+                        </label>
+                        <span id="post-file-name" class="file-name">No file chosen</span>
+                    </div>
+                    <div id="post-image-preview" class="image-preview"></div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">
@@ -376,30 +436,184 @@
             justify-content: flex-start;
         }
     }
+    
+    .post-image, .comment-image {
+        margin-bottom: 15px;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    
+    .post-image img, .comment-image img {
+        max-width: 100%;
+        display: block;
+    }
+    
+    .file-input-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .file-input {
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+    }
+    
+    .file-input-label {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .file-input-label:hover {
+        background-color: var(--accent-primary);
+    }
+    
+    .file-name {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+    
+    .image-preview {
+        margin-top: 10px;
+        max-width: 100%;
+    }
+    
+    .image-preview img {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: var(--border-radius);
+    }
+    
+    .comment-image-upload {
+        position: relative;
+    }
+    
+    .file-input-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .file-input-icon:hover {
+        background-color: var(--accent-primary);
+    }
+    
+    .btn-like.active, .btn-like-comment.active {
+        color: #4CAF50;
+    }
+    
+    .btn-dislike.active, .btn-dislike-comment.active {
+        color: #F44336;
+    }
+    
+    .comment-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    /* Delete button styles */
+    .post-options, .comment-options {
+        display: flex;
+        align-items: center;
+    }
+    
+    .btn-delete-post, .btn-delete-comment {
+        background-color: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: var(--transition);
+    }
+    
+    .btn-delete-post:hover, .btn-delete-comment:hover {
+        color: var(--danger);
+        background-color: rgba(255, 0, 0, 0.1);
+    }
+    
+    /* Confirmation modal */
+    .confirm-modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+    
+    .confirm-modal-content {
+        background-color: var(--bg-secondary);
+        margin: 15% auto;
+        padding: 20px;
+        border-radius: var(--border-radius);
+        max-width: 400px;
+        text-align: center;
+    }
+    
+    .confirm-modal-actions {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .btn-cancel {
+        background-color: var(--bg-tertiary);
+    }
+    
+    .btn-confirm {
+        background-color: var(--danger);
+    }
 </style>
+{% endblock %}
 
+{% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Modal functionality
+        // Modal elements
+        const newPostModal = document.getElementById('new-post-modal');
         const newPostBtn = document.getElementById('new-post-btn');
         const emptyNewPostBtn = document.getElementById('empty-new-post-btn');
-        const newPostModal = document.getElementById('new-post-modal');
         const modalClose = document.querySelector('.modal-close');
+        const forumPostForm = document.getElementById('forum-post-form');
         
-        function openNewPostModal() {
-            if (newPostModal) {
-                newPostModal.style.display = 'block';
-            }
-        }
-        
+        // Show modal when button is clicked
         if (newPostBtn) {
-            newPostBtn.addEventListener('click', openNewPostModal);
+            newPostBtn.addEventListener('click', function() {
+                newPostModal.style.display = 'block';
+            });
         }
         
         if (emptyNewPostBtn) {
-            emptyNewPostBtn.addEventListener('click', openNewPostModal);
+            emptyNewPostBtn.addEventListener('click', function() {
+                newPostModal.style.display = 'block';
+            });
         }
         
+        // Close modal when X is clicked
         if (modalClose) {
             modalClose.addEventListener('click', function() {
                 newPostModal.style.display = 'none';
@@ -408,29 +622,30 @@
         
         // Close modal when clicking outside
         window.addEventListener('click', function(event) {
-            if (event.target === newPostModal) {
+            if (event.target == newPostModal) {
                 newPostModal.style.display = 'none';
             }
         });
         
-        // Show/hide comments
-        const commentButtons = document.querySelectorAll('.btn-comments');
-        
-        commentButtons.forEach(button => {
+        // Toggle comments visibility
+        document.querySelectorAll('.btn-comments').forEach(button => {
             button.addEventListener('click', function() {
                 const post = this.closest('.forum-post');
-                const comments = post.querySelector('.comments-container');
+                const commentsContainer = post.querySelector('.comments-container');
                 
-                comments.classList.toggle('active');
-                if (comments.classList.contains('active')) {
-                    comments.style.display = 'block';
+                if (commentsContainer.style.display === 'block') {
+                    commentsContainer.style.display = 'none';
                 } else {
-                    comments.style.display = 'none';
+                    // Hide all other comment sections
+                    document.querySelectorAll('.comments-container').forEach(container => {
+                        container.style.display = 'none';
+                    });
+                    commentsContainer.style.display = 'block';
                 }
             });
         });
         
-        // Initialize comments to be hidden
+        // Initially hide all comments
         document.querySelectorAll('.comments-container').forEach(container => {
             container.style.display = 'none';
         });
@@ -444,10 +659,17 @@
                 const postsContainer = document.getElementById('forum-posts');
                 
                 if (this.value === 'recent') {
-                    // Sort by most recent (assuming first post is most recent)
-                    // In a real app, we would re-sort by timestamp
-                    // For demo, we'll just refresh the page
-                    window.location.reload();
+                    // Sort by most recent timestamps
+                    const sortedPosts = Array.from(posts).sort((a, b) => {
+                        const aTimestamp = parseFloat(a.querySelector('.post-time').getAttribute('data-timestamp') || 0);
+                        const bTimestamp = parseFloat(b.querySelector('.post-time').getAttribute('data-timestamp') || 0);
+                        return bTimestamp - aTimestamp; // descending order (newest first)
+                    });
+                    
+                    postsContainer.innerHTML = '';
+                    sortedPosts.forEach(post => {
+                        postsContainer.appendChild(post);
+                    });
                 } else if (this.value === 'popular') {
                     // Sort by most comments
                     const sortedPosts = Array.from(posts).sort((a, b) => {
@@ -463,16 +685,355 @@
                 }
             });
         }
+        
+        // Post image preview
+        const postImageInput = document.getElementById('post-image');
+        const postImagePreview = document.getElementById('post-image-preview');
+        const postFileName = document.getElementById('post-file-name');
+        
+        if (postImageInput) {
+            postImageInput.addEventListener('change', function() {
+                postFileName.textContent = this.files[0] ? this.files[0].name : 'No file chosen';
+                
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        postImagePreview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    postImagePreview.innerHTML = '';
+                }
+            });
+        }
+        
+        // Comment image previews
+        document.querySelectorAll('[id^="comment-image-"]').forEach(input => {
+            const postId = input.id.split('-')[2];
+            const previewContainer = document.getElementById(`comment-image-preview-${postId}`);
+            
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        previewContainer.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    previewContainer.innerHTML = '';
+                }
+            });
+        });
+        
+        // Track form submissions to prevent duplicates
+        let isSubmitting = false;
+        
+        // Post form submission
+        if (forumPostForm) {
+            forumPostForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Prevent duplicate submissions
+                if (isSubmitting) return;
+                isSubmitting = true;
+                
+                // Disable the submit button to prevent double submissions
+                const submitButton = this.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
+                }
+                
+                const formData = new FormData(this);
+                
+                fetch('/api/forum-post', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    isSubmitting = false;
+                    if (data.success) {
+                        // Close the modal
+                        if (newPostModal) {
+                            newPostModal.style.display = 'none';
+                        }
+                        
+                        // Reload the page to show the new post
+                        window.location.href = '/forum';
+                    } else {
+                        alert(data.error || 'Error creating post');
+                        // Re-enable the submit button
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Post';
+                        }
+                    }
+                })
+                .catch(error => {
+                    isSubmitting = false;
+                    console.error('Error:', error);
+                    // Re-enable the submit button
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Post';
+                    }
+                });
+            });
+        }
+        
+        // Comment submission - use a map to track which forms are submitting
+        const submittingForms = new Map();
+        
+        document.querySelectorAll('.comment-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const postId = this.getAttribute('data-post-id');
+                
+                // Prevent duplicate submissions for this form
+                if (submittingForms.get(postId)) return;
+                submittingForms.set(postId, true);
+                
+                // Disable the submit button to prevent double submissions
+                const submitButton = this.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                }
+                
+                const formData = new FormData(this);
+                formData.append('post_id', postId);
+                
+                fetch('/api/forum-comment', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    submittingForms.set(postId, false);
+                    if (data.success) {
+                        // Clear input and image preview
+                        this.querySelector('.comment-input').value = '';
+                        const previewContainer = document.getElementById(`comment-image-preview-${postId}`);
+                        if (previewContainer) previewContainer.innerHTML = '';
+                        
+                        // Reload the page to show the new comment
+                        window.location.href = '/forum';
+                    } else {
+                        alert(data.error || 'Error adding comment');
+                        // Re-enable the submit button
+                        if (submitButton) {
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    submittingForms.set(postId, false);
+                    console.error('Error:', error);
+                    // Re-enable the submit button
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                    }
+                });
+            });
+        });
+        
+        // Like/dislike post reactions
+        document.querySelectorAll('.btn-like, .btn-dislike').forEach(button => {
+            button.addEventListener('click', function() {
+                const postId = this.getAttribute('data-post-id');
+                const reactionType = this.classList.contains('btn-like') ? 'like' : 'dislike';
+                
+                fetch('/api/forum-reaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        reaction_type: reactionType
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const post = data.post;
+                        
+                        // Update UI
+                        const likesCount = this.closest('.forum-post').querySelector('.btn-like .like-count');
+                        const dislikesCount = this.closest('.forum-post').querySelector('.btn-dislike .dislike-count');
+                        
+                        if (likesCount) likesCount.textContent = post.likes;
+                        if (dislikesCount) dislikesCount.textContent = post.dislikes;
+                        
+                        // Toggle active state
+                        const likeButton = this.closest('.forum-post').querySelector('.btn-like');
+                        const dislikeButton = this.closest('.forum-post').querySelector('.btn-dislike');
+                        
+                        if (reactionType === 'like') {
+                            likeButton.classList.toggle('active');
+                            dislikeButton.classList.remove('active');
+                        } else {
+                            dislikeButton.classList.toggle('active');
+                            likeButton.classList.remove('active');
+                        }
+                    } else {
+                        alert(data.error || 'Error processing reaction');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+        
+        // Like/dislike comment reactions
+        document.querySelectorAll('.btn-like-comment, .btn-dislike-comment').forEach(button => {
+            button.addEventListener('click', function() {
+                const commentId = this.getAttribute('data-comment-id');
+                const reactionType = this.classList.contains('btn-like-comment') ? 'like' : 'dislike';
+                
+                fetch('/api/forum-reaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        comment_id: commentId,
+                        reaction_type: reactionType
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Find the comment in the returned post data
+                        let comment;
+                        for (const c of data.post.comments) {
+                            if (c.id == commentId) {
+                                comment = c;
+                                break;
+                            }
+                        }
+                        
+                        if (comment) {
+                            // Update UI
+                            const likesCount = this.closest('.comment').querySelector('.btn-like-comment .like-count');
+                            const dislikesCount = this.closest('.comment').querySelector('.btn-dislike-comment .dislike-count');
+                            
+                            if (likesCount) likesCount.textContent = comment.likes;
+                            if (dislikesCount) dislikesCount.textContent = comment.dislikes;
+                            
+                            // Toggle active state
+                            const likeButton = this.closest('.comment').querySelector('.btn-like-comment');
+                            const dislikeButton = this.closest('.comment').querySelector('.btn-dislike-comment');
+                            
+                            if (reactionType === 'like') {
+                                likeButton.classList.toggle('active');
+                                dislikeButton.classList.remove('active');
+                            } else {
+                                dislikeButton.classList.toggle('active');
+                                likeButton.classList.remove('active');
+                            }
+                        }
+                    } else {
+                        alert(data.error || 'Error processing reaction');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+        
+        // Delete post buttons
+        document.querySelectorAll('.btn-delete-post').forEach(button => {
+            button.addEventListener('click', function() {
+                const postId = this.getAttribute('data-post-id');
+                
+                // Show confirmation dialog
+                if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                    fetch('/api/delete-forum-post', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            post_id: postId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the post from the DOM
+                            const post = this.closest('.forum-post');
+                            if (post) {
+                                post.remove();
+                            }
+                            
+                            // If no posts left, reload the page to show empty state
+                            if (document.querySelectorAll('.forum-post').length === 0) {
+                                window.location.href = '/forum';
+                            }
+                        } else {
+                            alert(data.error || 'Error deleting post');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while deleting the post');
+                    });
+                }
+            });
+        });
+        
+        // Delete comment buttons
+        document.querySelectorAll('.btn-delete-comment').forEach(button => {
+            button.addEventListener('click', function() {
+                const commentId = this.getAttribute('data-comment-id');
+                
+                // Show confirmation dialog
+                if (confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
+                    fetch('/api/delete-forum-comment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            comment_id: commentId
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the comment from the DOM
+                            const comment = this.closest('.comment');
+                            if (comment) {
+                                comment.remove();
+                            }
+                        } else {
+                            alert(data.error || 'Error deleting comment');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while deleting the comment');
+                    });
+                }
+            });
+        });
+        
+        // Helper function to format timestamps
+        function timestamp_format(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString();
+        }
     });
-</script>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    // Helper function to format timestamps (this would be handled by the Jinja filter in production)
-    function timestamp_format(timestamp) {
-        const date = new Date(timestamp * 1000);
-        return date.toLocaleString();
-    }
 </script>
 {% endblock %} 

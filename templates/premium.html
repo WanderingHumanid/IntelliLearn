@@ -6,143 +6,216 @@
 
 {% block content %}
 <div class="premium-container">
-    <div class="premium-header">
-        <div class="premium-icon">
-            <i class="fas fa-crown"></i>
-        </div>
-        <h2>Unlock Premium Features</h2>
-        <p>Accelerate your learning journey with our premium features</p>
-    </div>
-    
-    {% if is_premium %}
-    <div class="premium-active-notice">
-        <div class="notice-icon">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="notice-content">
-            <h3>You're a Premium Member</h3>
-            <p>Your premium subscription is active until {{ premium_until|timestamp_format }}</p>
-        </div>
-    </div>
-    {% endif %}
-    
-    <div class="features-grid">
-        {% for feature in features %}
-        <div class="feature-card">
-            <div class="feature-icon">
-                {% if feature.name == "AI Responses" %}
-                <i class="fas fa-robot"></i>
-                {% elif feature.name == "Community AI" %}
-                <i class="fas fa-comments"></i>
-                {% elif feature.name == "Study AI" %}
-                <i class="fas fa-book"></i>
-                {% elif feature.name == "Unlimited Roadmaps" %}
-                <i class="fas fa-map"></i>
-                {% else %}
-                <i class="fas fa-star"></i>
+    <div class="premium-hero">
+        <div class="hero-content">
+            <h2>Enhance Your Learning Experience</h2>
+            <p>Unlock premium features to maximize your learning potential with IntelliLearn.</p>
+            
+            {% if is_premium %}
+            <div class="premium-status active">
+                <i class="fas fa-check-circle"></i> 
+                <span>You are a Premium Member</span>
+                {% if premium_until %}
+                <div class="expiry-date">Valid until: {{ premium_until|timestamp_format }}</div>
                 {% endif %}
             </div>
-            <h3>{{ feature.name }}</h3>
-            <p>{{ feature.description }}</p>
+            {% else %}
+            <div class="premium-status">
+                <i class="fas fa-crown"></i> 
+                <span>Upgrade to Premium</span>
+            </div>
+            {% endif %}
         </div>
-        {% endfor %}
+        <div class="hero-image">
+            <img src="{{ url_for('static', filename='images/premium-hero.svg') }}" alt="Premium Features" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'">
+        </div>
+    </div>
+    
+    <div class="features-section">
+        <h3 class="section-title">Premium Benefits</h3>
+        
+        <div class="features-grid">
+            {% for feature in features %}
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-{{ feature.icon }}"></i>
+                </div>
+                <h4 class="feature-title">{{ feature.title }}</h4>
+                <p class="feature-description">{{ feature.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     
     {% if not is_premium %}
-    <div class="premium-plans">
-        <h3>Choose Your Plan</h3>
-        <form method="POST" action="{{ url_for('upgrade_premium') }}" class="plans-form">
-            <div class="plans-grid">
-                <div class="plan-card" onclick="selectPlan('1')">
-                    <input type="radio" name="plan" id="plan-1" value="1" class="plan-radio">
-                    <label for="plan-1" class="plan-label">
-                        <div class="plan-duration">1 Month</div>
-                        <div class="plan-price">$0.99</div>
-                        <div class="plan-billing">Billed monthly</div>
-                    </label>
+    <div class="plans-section">
+        <h3 class="section-title">Choose Your Plan</h3>
+        
+        <div class="plans-grid">
+            <div class="plan-card">
+                <div class="plan-header">
+                    <h4 class="plan-title">Monthly</h4>
+                    <div class="plan-price">$9.99<span>/month</span></div>
                 </div>
-                
-                <div class="plan-card" onclick="selectPlan('3')">
-                    <input type="radio" name="plan" id="plan-3" value="3" class="plan-radio">
-                    <label for="plan-3" class="plan-label">
-                        <div class="plan-duration">3 Months</div>
-                        <div class="plan-price">$2.49</div>
-                        <div class="plan-save">Save 25%</div>
-                    </label>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check"></i> All premium features</li>
+                        <li><i class="fas fa-check"></i> Cancel anytime</li>
+                        <li><i class="fas fa-check"></i> 7-day free trial</li>
+                    </ul>
                 </div>
-                
-                <div class="plan-card recommended" onclick="selectPlan('6')">
-                    <div class="recommended-badge">Most Popular</div>
-                    <input type="radio" name="plan" id="plan-6" value="6" class="plan-radio" checked>
-                    <label for="plan-6" class="plan-label">
-                        <div class="plan-duration">6 Months</div>
-                        <div class="plan-price">$4.50</div>
-                        <div class="plan-save">Save 40%</div>
-                    </label>
-                </div>
-                
-                <div class="plan-card" onclick="selectPlan('12')">
-                    <input type="radio" name="plan" id="plan-12" value="12" class="plan-radio">
-                    <label for="plan-12" class="plan-label">
-                        <div class="plan-duration">12 Months</div>
-                        <div class="plan-price">$8.99</div>
-                        <div class="plan-save">Save 50%!</div>
-                    </label>
+                <div class="plan-action">
+                    <form action="{{ url_for('upgrade_premium') }}" method="POST">
+                        <input type="hidden" name="plan" value="1">
+                        <button type="submit" class="btn btn-primary">Subscribe Monthly</button>
+                    </form>
                 </div>
             </div>
             
-            <div class="plans-submit">
-                <button type="submit" class="btn btn-premium">
-                    <i class="fas fa-crown"></i> Upgrade Now
-                </button>
-                <p class="plans-disclaimer">
-                    All plans include full access to all premium features. You can cancel anytime.
-                </p>
+            <div class="plan-card popular">
+                <div class="popular-tag">Most Popular</div>
+                <div class="plan-header">
+                    <h4 class="plan-title">3-Month</h4>
+                    <div class="plan-price">$24.99<span>/3 months</span></div>
+                    <div class="plan-discount">Save 17%</div>
+                </div>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check"></i> All premium features</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> 7-day free trial</li>
+                    </ul>
+                </div>
+                <div class="plan-action">
+                    <form action="{{ url_for('upgrade_premium') }}" method="POST">
+                        <input type="hidden" name="plan" value="3">
+                        <button type="submit" class="btn btn-primary">Subscribe Quarterly</button>
+                    </form>
+                </div>
             </div>
-        </form>
+            
+            <div class="plan-card">
+                <div class="plan-header">
+                    <h4 class="plan-title">Annual</h4>
+                    <div class="plan-price">$89.99<span>/year</span></div>
+                    <div class="plan-discount">Save 25%</div>
+                </div>
+                <div class="plan-features">
+                    <ul>
+                        <li><i class="fas fa-check"></i> All premium features</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> 15-day free trial</li>
+                        <li><i class="fas fa-check"></i> Exclusive content access</li>
+                    </ul>
+                </div>
+                <div class="plan-action">
+                    <form action="{{ url_for('upgrade_premium') }}" method="POST">
+                        <input type="hidden" name="plan" value="12">
+                        <button type="submit" class="btn btn-primary">Subscribe Yearly</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="money-back-guarantee">
+            <i class="fas fa-shield-alt"></i>
+            <span>30-day money-back guarantee. No questions asked.</span>
+        </div>
     </div>
     {% endif %}
     
-    <div class="premium-faq">
-        <h3>Frequently Asked Questions</h3>
-        <div class="faq-list">
+    <div class="testimonials-section">
+        <h3 class="section-title">What Our Members Say</h3>
+        
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <p>"The premium AI features have helped me improve my grades significantly. The personalized learning paths are fantastic!"</p>
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="author-info">
+                        <div class="author-name">Alex Johnson</div>
+                        <div class="author-title">Computer Science Student</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <p>"The advanced quizzes and unlimited AI assistance has changed the way I study. I'm now much more efficient in my learning journey."</p>
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="author-info">
+                        <div class="author-name">Sarah Chen</div>
+                        <div class="author-title">Data Science Professional</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <p>"The premium resources are well worth the investment. I've mastered complex topics in half the time it would've taken otherwise."</p>
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="author-info">
+                        <div class="author-name">Michael Rodriguez</div>
+                        <div class="author-title">Engineering Student</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="faq-section">
+        <h3 class="section-title">Frequently Asked Questions</h3>
+        
+        <div class="faq-grid">
             <div class="faq-item">
                 <div class="faq-question">
-                    <h4>What are the benefits of a premium subscription?</h4>
-                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                    <h4>What's included in the premium subscription?</h4>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Premium subscribers get unlimited roadmap generation, more AI responses per day, AI assistance in the community forum, and exclusive access to premium study resources.</p>
+                    <p>Premium includes unlimited access to AI learning assistant, advanced quiz generation, exclusive study resources, priority support, and more.</p>
                 </div>
             </div>
             
             <div class="faq-item">
                 <div class="faq-question">
-                    <h4>Can I cancel my subscription anytime?</h4>
-                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                    <h4>Can I cancel my subscription?</h4>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Yes, you can cancel your subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
+                    <p>Yes, you can cancel your subscription at any time. Your premium benefits will remain active until the end of your billing period.</p>
                 </div>
             </div>
             
             <div class="faq-item">
                 <div class="faq-question">
-                    <h4>How many roadmaps can I create with premium?</h4>
-                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                    <h4>Is there a free trial?</h4>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>Premium members can create unlimited learning roadmaps. Free users are limited to 3 roadmaps per week.</p>
+                    <p>Yes, we offer a 7-day free trial with our monthly and quarterly plans, and a 15-day free trial with our annual plan.</p>
                 </div>
             </div>
             
             <div class="faq-item">
                 <div class="faq-question">
-                    <h4>What payment methods do you accept?</h4>
-                    <div class="faq-toggle"><i class="fas fa-chevron-down"></i></div>
+                    <h4>How does the money-back guarantee work?</h4>
+                    <i class="fas fa-chevron-down"></i>
                 </div>
                 <div class="faq-answer">
-                    <p>We accept all major credit cards, PayPal, and other popular payment methods.</p>
+                    <p>If you're not satisfied with your premium experience, you can request a full refund within 30 days of your purchase. No questions asked.</p>
                 </div>
             </div>
         </div>
@@ -153,68 +226,98 @@
 {% block head %}
 <style>
     .premium-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .premium-hero {
         display: flex;
-        flex-direction: column;
-        gap: 30px;
+        align-items: center;
+        background: linear-gradient(45deg, var(--bg-tertiary), var(--bg-secondary));
+        border-radius: var(--border-radius);
+        padding: 40px;
+        margin-bottom: 40px;
+        box-shadow: var(--shadow-sm);
     }
     
-    .premium-header {
-        text-align: center;
-        margin-bottom: 10px;
+    .hero-content {
+        flex: 1;
     }
     
-    .premium-icon {
-        font-size: 3rem;
-        color: #FFD700;
-        margin-bottom: 15px;
+    .hero-content h2 {
+        font-size: 2.5rem;
+        margin: 0 0 15px 0;
+        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     
-    .premium-header h2 {
-        margin: 0 0 10px 0;
-        font-size: 2rem;
+    .hero-content p {
+        font-size: 1.2rem;
+        margin: 0 0 25px 0;
+        color: var(--text-primary);
+        max-width: 80%;
     }
     
-    .premium-header p {
-        margin: 0;
-        color: var(--text-secondary);
+    .premium-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        font-weight: 600;
         font-size: 1.1rem;
     }
     
-    .premium-active-notice {
+    .premium-status i {
+        margin-right: 10px;
+        color: var(--accent-primary);
+    }
+    
+    .premium-status.active i {
+        color: #4CAF50;
+    }
+    
+    .expiry-date {
+        font-size: 0.9rem;
+        margin-top: 5px;
+        opacity: 0.8;
+    }
+    
+    .hero-image {
+        flex: 1;
         display: flex;
-        align-items: center;
-        gap: 20px;
-        background-color: rgba(75, 181, 67, 0.1);
-        border: 1px solid rgba(75, 181, 67, 0.3);
-        padding: 20px;
-        border-radius: var(--border-radius);
+        justify-content: center;
     }
     
-    .notice-icon {
-        font-size: 2.5rem;
-        color: #4BB543;
+    .hero-image img {
+        max-width: 100%;
+        height: auto;
     }
     
-    .notice-content h3 {
-        margin: 0 0 5px 0;
-        color: #4BB543;
+    .section-title {
+        text-align: center;
+        font-size: 2rem;
+        margin: 0 0 40px 0;
     }
     
-    .notice-content p {
-        margin: 0;
-        color: var(--text-secondary);
+    .features-section,
+    .plans-section,
+    .testimonials-section,
+    .faq-section {
+        margin-bottom: 60px;
     }
     
     .features-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
     }
     
     .feature-card {
         background-color: var(--bg-secondary);
+        padding: 30px;
         border-radius: var(--border-radius);
-        padding: 25px;
         text-align: center;
         box-shadow: var(--shadow-sm);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -226,220 +329,253 @@
     }
     
     .feature-icon {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background-color: var(--bg-tertiary);
-        color: #FFD700;
-        font-size: 1.8rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 15px;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        color: var(--accent-primary);
     }
     
-    .feature-card h3 {
-        margin: 0 0 10px 0;
+    .feature-title {
         font-size: 1.3rem;
+        margin: 0 0 15px 0;
     }
     
-    .feature-card p {
-        margin: 0;
+    .feature-description {
         color: var(--text-secondary);
-        font-size: 0.9rem;
-    }
-    
-    .premium-plans {
-        background-color: var(--bg-secondary);
-        border-radius: var(--border-radius);
-        padding: 30px;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .premium-plans h3 {
-        text-align: center;
-        margin: 0 0 20px 0;
-        font-size: 1.5rem;
+        margin: 0;
+        line-height: 1.5;
     }
     
     .plans-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
         margin-bottom: 30px;
     }
     
     .plan-card {
-        background-color: var(--bg-primary);
-        border: 2px solid var(--border-color);
+        background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
-        padding: 20px;
-        cursor: pointer;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         position: relative;
-        transition: all 0.2s ease;
     }
     
-    .plan-card:hover, .plan-card.selected {
-        border-color: #FFD700;
+    .plan-card:hover {
         transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
     }
     
-    .recommended {
-        border-color: #FFD700;
+    .plan-card.popular {
+        border: 2px solid var(--accent-primary);
+        transform: scale(1.05);
     }
     
-    .recommended-badge {
+    .popular-tag {
         position: absolute;
-        top: -10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #FFD700;
-        color: #333;
-        padding: 3px 10px;
-        border-radius: 12px;
+        top: 10px;
+        right: 10px;
+        background-color: var(--accent-primary);
+        color: white;
+        padding: 5px 10px;
         font-size: 0.8rem;
-        font-weight: bold;
+        border-radius: 20px;
+        font-weight: 600;
     }
     
-    .plan-radio {
-        position: absolute;
-        opacity: 0;
-    }
-    
-    .plan-label {
-        display: block;
-        cursor: pointer;
+    .plan-header {
+        padding: 25px;
         text-align: center;
+        background-color: var(--bg-tertiary);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    .plan-duration {
-        font-weight: bold;
-        font-size: 1.2rem;
-        margin-bottom: 10px;
+    .plan-title {
+        font-size: 1.5rem;
+        margin: 0 0 10px 0;
     }
     
     .plan-price {
-        font-size: 1.8rem;
-        font-weight: bold;
-        margin-bottom: 5px;
-        color: var(--primary-color);
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent-primary);
     }
     
-    .plan-billing {
-        font-size: 0.9rem;
+    .plan-price span {
+        font-size: 1rem;
+        font-weight: 400;
         color: var(--text-secondary);
-        margin-bottom: 10px;
     }
     
-    .plan-save {
+    .plan-discount {
         display: inline-block;
-        background-color: rgba(75, 181, 67, 0.1);
-        color: #4BB543;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 0.8rem;
-        font-weight: bold;
+        padding: 5px 10px;
+        background-color: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border-radius: 20px;
+        margin-top: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
     }
     
-    .plans-submit {
+    .plan-features {
+        padding: 25px;
+    }
+    
+    .plan-features ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .plan-features li {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .plan-features li:last-child {
+        margin-bottom: 0;
+    }
+    
+    .plan-features i {
+        color: #4CAF50;
+        margin-right: 10px;
+    }
+    
+    .plan-action {
+        padding: 0 25px 25px 25px;
         text-align: center;
     }
     
-    .btn-premium {
-        background-color: #FFD700;
-        color: #333;
-        border: none;
-        padding: 12px 24px;
+    .money-back-guarantee {
+        text-align: center;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
         border-radius: var(--border-radius);
-        font-size: 1.1rem;
-        font-weight: bold;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    
-    .btn-premium:hover {
-        background-color: #E6C200;
-        transform: translateY(-2px);
-    }
-    
-    .plans-disclaimer {
-        margin: 15px 0 0 0;
-        font-size: 0.9rem;
         color: var(--text-secondary);
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
     }
     
-    .premium-faq {
+    .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    }
+    
+    .testimonial-card {
         background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
-        padding: 30px;
+        padding: 25px;
         box-shadow: var(--shadow-sm);
     }
     
-    .premium-faq h3 {
-        text-align: center;
-        margin: 0 0 20px 0;
-        font-size: 1.5rem;
+    .testimonial-content {
+        font-style: italic;
+        margin-bottom: 20px;
+        color: var(--text-primary);
     }
     
-    .faq-list {
+    .testimonial-content p {
+        margin: 0;
+        line-height: 1.6;
+    }
+    
+    .testimonial-author {
         display: flex;
-        flex-direction: column;
+        align-items: center;
+    }
+    
+    .author-avatar {
+        width: 40px;
+        height: 40px;
+        background-color: var(--bg-tertiary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        margin-right: 15px;
+    }
+    
+    .author-name {
+        font-weight: 600;
+    }
+    
+    .author-title {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    
+    .faq-grid {
+        display: grid;
+        grid-template-columns: 1fr;
         gap: 15px;
     }
     
     .faq-item {
-        border: 1px solid var(--border-color);
+        background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
         overflow: hidden;
     }
     
     .faq-question {
-        padding: 15px 20px;
-        background-color: var(--bg-primary);
+        padding: 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .faq-question h4 {
         margin: 0;
-        font-size: 1rem;
-    }
-    
-    .faq-toggle {
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-        transition: transform 0.2s ease;
-    }
-    
-    .faq-item.active .faq-toggle {
-        transform: rotate(180deg);
+        font-size: 1.1rem;
     }
     
     .faq-answer {
-        padding: 0 20px;
-        max-height: 0;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .faq-item.active .faq-answer {
-        padding: 15px 20px;
-        max-height: 500px;
+        padding: 0 20px 20px 20px;
+        display: none;
     }
     
     .faq-answer p {
         margin: 0;
         color: var(--text-secondary);
+        line-height: 1.6;
+    }
+    
+    @media (max-width: 992px) {
+        .premium-hero {
+            flex-direction: column;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .hero-content h2 {
+            font-size: 2rem;
+        }
+        
+        .hero-content p {
+            font-size: 1.1rem;
+            max-width: 100%;
+        }
+        
+        .hero-image {
+            margin-top: 30px;
+        }
+        
+        .plan-card.popular {
+            transform: none;
+        }
     }
     
     @media (max-width: 768px) {
-        .plans-grid {
-            grid-template-columns: 1fr;
+        .section-title {
+            font-size: 1.8rem;
         }
     }
 </style>
@@ -448,41 +584,26 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle FAQ toggles
-        const faqItems = document.querySelectorAll('.faq-item');
-        faqItems.forEach(item => {
-            const question = item.querySelector('.faq-question');
-            question.addEventListener('click', () => {
-                // Toggle active class on clicked item
-                item.classList.toggle('active');
+        // FAQ toggle functionality
+        const faqQuestions = document.querySelectorAll('.faq-question');
+        
+        faqQuestions.forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const icon = this.querySelector('i');
                 
-                // Close other items
-                faqItems.forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                    }
-                });
+                // Toggle answer visibility
+                if (answer.style.display === 'block') {
+                    answer.style.display = 'none';
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                } else {
+                    answer.style.display = 'block';
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
             });
         });
-        
-        // Show the first FAQ item by default
-        if (faqItems.length > 0) {
-            faqItems[0].classList.add('active');
-        }
     });
-    
-    function selectPlan(planId) {
-        // Update radio selection
-        document.getElementById('plan-' + planId).checked = true;
-        
-        // Update visual selection
-        const plans = document.querySelectorAll('.plan-card');
-        plans.forEach(plan => {
-            plan.classList.remove('selected');
-        });
-        
-        const selectedPlan = document.querySelector(`label[for="plan-${planId}"]`).closest('.plan-card');
-        selectedPlan.classList.add('selected');
-    }
 </script>
 {% endblock %} 

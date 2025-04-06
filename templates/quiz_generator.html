@@ -1,0 +1,1305 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Generator - IntelliLearn{% endblock %}
+
+{% block page_title %}
+    Quiz Generator
+    <div class="page-actions" style="margin-top: 15px;">
+        <button class="btn btn-primary btn-sm" id="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="quiz-generator-container">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Generate Custom Quiz</h3>
+        </div>
+        <div class="card-body">
+            <form id="quiz-generator-form">
+                <div class="form-group">
+                    <label for="quiz-topic" class="form-label">Quiz Topic</label>
+                    <input type="text" id="quiz-topic" name="topic" class="form-control" placeholder="Enter a topic (e.g., Python Programming, Machine Learning)" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quiz-type" class="form-label">Quiz Type</label>
+                    <select id="quiz-type" name="quiz_type" class="form-control">
+                        <option value="mcq">Multiple Choice Questions</option>
+                        <option value="direct">Direct Answer Questions</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quiz-count" class="form-label">Number of Questions</label>
+                    <select id="quiz-count" name="question_count" class="form-control">
+                        <option value="5">5 Questions</option>
+                        <option value="10" selected>10 Questions</option>
+                        <option value="15">15 Questions</option>
+                        <option value="20">20 Questions</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quiz-difficulty" class="form-label">Difficulty Level</label>
+                    <select id="quiz-difficulty" name="difficulty" class="form-control">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate" selected>Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="mixed">Mixed</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-gradient">
+                    <i class="fas fa-play"></i> Generate Quiz
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="quiz-loading" class="quiz-loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <h3 class="loading-text">Generating your quiz...</h3>
+        <p class="loading-subtext">Our AI is crafting challenging questions on your topic</p>
+    </div>
+    
+    <div id="quiz-container" class="quiz-container" style="display: none;">
+        <div class="quiz-header">
+            <h3 id="quiz-title">Quiz on <span id="quiz-topic-display"></span></h3>
+            <div class="quiz-info">
+                <span id="quiz-question-count"></span> | 
+                <span id="quiz-difficulty-display"></span>
+            </div>
+        </div>
+        
+        <div id="quiz-questions" class="quiz-questions"></div>
+        
+        <div class="quiz-controls">
+            <button id="submit-quiz" class="btn btn-primary">
+                <i class="fas fa-check"></i> Submit Quiz
+            </button>
+            <button id="new-quiz" class="btn btn-secondary">
+                <i class="fas fa-redo"></i> New Quiz
+            </button>
+        </div>
+    </div>
+    
+    <div id="quiz-results" class="quiz-results card" style="display: none;">
+        <div class="card-header">
+            <h3 class="card-title">Quiz Results</h3>
+        </div>
+        <div class="card-body">
+            <div class="results-summary">
+                <div class="score-circle">
+                    <div class="score-value" id="score-percent">0%</div>
+                </div>
+                <div class="score-details">
+                    <div class="score-row">
+                        <span class="score-label">Correct Answers:</span>
+                        <span class="score-number" id="correct-count">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Incorrect Answers:</span>
+                        <span class="score-number" id="incorrect-count">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Total Questions:</span>
+                        <span class="score-number" id="total-questions">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-feedback" id="results-feedback"></div>
+            
+            <div class="results-actions">
+                <button id="review-answers" class="btn btn-secondary">
+                    <i class="fas fa-search"></i> Review Answers
+                </button>
+                <button id="new-quiz-results" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Create New Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="answers-review" class="answers-review" style="display: none;">
+        <div class="review-header">
+            <h3>Review Answers</h3>
+            <button id="close-review" class="btn-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="review-content" class="review-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --accent-color-1: #7c4dff;
+        --accent-color-2: #536dfe;
+        --accent-color-3: #448aff;
+        --accent-gradient: linear-gradient(135deg, var(--accent-color-1), var(--accent-color-2));
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --error-color: #f44336;
+        --highlight-bg: rgba(124, 77, 255, 0.1);
+    }
+
+    .quiz-generator-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .card, .quiz-container, .quiz-loading, .quiz-results {
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .card {
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        border: 1px solid rgba(124, 77, 255, 0.1);
+        opacity: 1;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .card-header {
+        padding: 20px;
+        background: var(--accent-primary);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 10px;
+    }
+    
+    .card-title {
+        margin: 0;
+        font-size: 1.4rem;
+    }
+    
+    .card-body {
+        padding: 25px;
+    }
+    
+    .form-group {
+        position: relative;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-group::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--accent-gradient);
+        transition: width 0.3s ease;
+    }
+    
+    .form-group.input-focused::after {
+        width: 100%;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--accent-primary);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color-1);
+        box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.3);
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 1rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 16px;
+    }
+    
+    .form-submit {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        background-color: var(--accent-primary);
+        color: white;
+        border: none;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 3px 10px rgba(124, 77, 255, 0.2);
+    }
+    
+    .btn:hover {
+        background-color: var(--accent-color-2);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(124, 77, 255, 0.3);
+    }
+    
+    .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+    
+    .btn-outline:hover {
+        background-color: var(--bg-tertiary);
+    }
+    
+    /* Quiz Generation Loading */
+    .quiz-loading {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        text-align: center;
+    }
+    
+    .loading-spinner {
+        width: 70px;
+        height: 70px;
+        position: relative;
+        margin-bottom: 30px;
+    }
+    
+    .loading-spinner:before,
+    .loading-spinner:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 5px solid transparent;
+        border-top-color: var(--accent-color-1);
+    }
+    
+    .loading-spinner:before {
+        z-index: 10;
+        animation: spin 1s infinite;
+    }
+    
+    .loading-spinner:after {
+        border: 5px solid rgba(124, 77, 255, 0.15);
+    }
+    
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    
+    .loading-text {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+        color: var(--accent-color-1);
+        font-weight: 600;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: pulse 2s infinite;
+    }
+    
+    .loading-subtext {
+        color: var(--text-secondary);
+        max-width: 80%;
+        text-align: center;
+        line-height: 1.5;
+    }
+    
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
+    
+    /* Error message styling */
+    .error-message {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: rgba(244, 67, 54, 0.1);
+        border-left: 4px solid #f44336;
+        border-radius: var(--border-radius);
+    }
+    
+    .error-icon {
+        font-size: 24px;
+        color: #f44336;
+        margin-right: 15px;
+        margin-top: 3px;
+    }
+    
+    .error-content h3 {
+        margin: 0 0 10px 0;
+        font-size: 1.1rem;
+        color: #f44336;
+    }
+    
+    .error-content p {
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+    }
+    
+    .error-hint {
+        font-style: italic;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    /* Quiz Container */
+    .quiz-container {
+        margin-top: 30px;
+        transform: translateY(20px);
+    }
+    
+    .quiz-container.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .quiz-header {
+        margin-bottom: 20px;
+        padding: 15px 20px;
+        border-radius: var(--border-radius);
+        background: var(--accent-gradient);
+        color: white;
+    }
+    
+    .quiz-header h3 {
+        margin: 0 0 5px 0;
+    }
+    
+    .quiz-info {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+    }
+    
+    .quiz-questions {
+        margin-bottom: 20px;
+    }
+    
+    .question-card {
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+        border-left: 4px solid var(--accent-color-3);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        animation: fadeInUp 0.5s ease forwards;
+        animation-delay: calc(var(--i, 0) * 0.1s);
+        opacity: 0;
+    }
+    
+    .question-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .question-number {
+        font-weight: 700;
+        color: var(--accent-color-1);
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+    }
+    
+    .question-text {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    
+    .options-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .option-item {
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        border-radius: 15px;
+        background-color: var(--bg-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(124, 77, 255, 0.1);
+    }
+    
+    .option-item:hover {
+        background-color: var(--highlight-bg);
+        transform: translateX(5px);
+    }
+    
+    .option-item.selected {
+        background-color: var(--accent-color-1);
+        color: white;
+        box-shadow: 0 3px 10px rgba(124, 77, 255, 0.3);
+    }
+    
+    .option-item.correct {
+        background-color: var(--success-color);
+        color: white;
+    }
+    
+    .option-item.incorrect {
+        background-color: var(--error-color);
+        color: white;
+    }
+    
+    .direct-answer-container {
+        margin-top: 10px;
+    }
+    
+    .direct-answer-input {
+        margin-bottom: 10px;
+        border-radius: 15px;
+        border: 1px solid rgba(124, 77, 255, 0.3);
+        padding: 15px;
+    }
+    
+    .file-upload-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 5px;
+    }
+    
+    .file-upload-btn {
+        background-color: var(--bg-secondary);
+        border: 1px solid rgba(124, 77, 255, 0.3);
+        padding: 10px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--accent-color-1);
+    }
+    
+    .file-upload-btn:hover {
+        background-color: var(--highlight-bg);
+        transform: translateY(-2px);
+    }
+    
+    .file-name-display {
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    .quiz-controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+    }
+    
+    .quiz-results {
+        margin-top: 30px;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .results-summary {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background-color: var(--highlight-bg);
+        border-radius: var(--border-radius);
+    }
+    
+    .score-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 25px;
+        box-shadow: 0 5px 15px rgba(124, 77, 255, 0.3);
+    }
+    
+    .score-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+    
+    .score-details {
+        flex: 1;
+    }
+    
+    .score-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .score-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .score-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .score-number {
+        font-weight: 600;
+        color: var(--accent-color-1);
+    }
+    
+    .results-feedback {
+        background-color: var(--bg-tertiary);
+        padding: 20px;
+        border-radius: var(--border-radius);
+        margin-bottom: 25px;
+        border-left: 4px solid var(--accent-color-2);
+    }
+    
+    .results-actions {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .answers-review {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 100vh;
+        background-color: var(--bg-secondary);
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(var(--blur));
+        border-left: 3px solid var(--accent-color-1);
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        background: var(--accent-gradient);
+        color: white;
+    }
+    
+    .review-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    
+    .review-item {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .review-question {
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: var(--accent-color-1);
+    }
+    
+    .review-answer {
+        padding: 15px;
+        border-radius: 15px;
+        background-color: var(--bg-tertiary);
+    }
+    
+    .review-answer.correct {
+        border-left: 4px solid var(--success-color);
+        background-color: rgba(76, 175, 80, 0.1);
+    }
+    
+    .review-answer.incorrect {
+        border-left: 4px solid var(--error-color);
+        background-color: rgba(244, 67, 54, 0.1);
+    }
+    
+    .review-correct-answer {
+        margin-top: 15px;
+        color: var(--success-color);
+        font-weight: 500;
+        padding: 10px 15px;
+        background-color: rgba(76, 175, 80, 0.05);
+        border-radius: 10px;
+    }
+    
+    .review-explanation {
+        margin-top: 15px;
+        padding: 10px 15px;
+        background-color: var(--highlight-bg);
+        border-radius: 10px;
+        font-style: italic;
+    }
+    
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(124, 77, 255, 0.3);
+        border-top: 5px solid var(--accent-color-1);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .btn-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+    
+    .btn-secondary {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid rgba(124, 77, 255, 0.3);
+    }
+    
+    .btn-secondary:hover {
+        background-color: var(--highlight-bg);
+        color: var(--accent-color-1);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .btn-gradient {
+        background: var(--accent-gradient);
+        box-shadow: 0 4px 15px rgba(124, 77, 255, 0.4);
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+    }
+    
+    .btn-gradient:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--accent-color-2), var(--accent-color-1));
+        opacity: 0;
+        z-index: -1;
+        transition: opacity 0.3s ease;
+    }
+    
+    .btn-gradient:hover {
+        box-shadow: 0 6px 20px rgba(124, 77, 255, 0.5);
+    }
+    
+    .btn-gradient:hover:before {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const quizForm = document.getElementById('quiz-generator-form');
+    const quizTypeSelect = document.getElementById('quiz-type');
+    const quizContainer = document.getElementById('quiz-container');
+    const quizLoading = document.getElementById('quiz-loading');
+    const quizQuestions = document.getElementById('quiz-questions');
+    const quizTopicDisplay = document.getElementById('quiz-topic-display');
+    const quizQuestionCount = document.getElementById('quiz-question-count');
+    const quizDifficultyDisplay = document.getElementById('quiz-difficulty-display');
+    const submitQuizBtn = document.getElementById('submit-quiz');
+    const newQuizBtn = document.getElementById('new-quiz');
+    const quizResults = document.getElementById('quiz-results');
+    const scorePercent = document.getElementById('score-percent');
+    const correctCount = document.getElementById('correct-count');
+    const incorrectCount = document.getElementById('incorrect-count');
+    const totalQuestions = document.getElementById('total-questions');
+    const resultsFeedback = document.getElementById('results-feedback');
+    const reviewAnswersBtn = document.getElementById('review-answers');
+    const newQuizResultsBtn = document.getElementById('new-quiz-results');
+    const answersReview = document.getElementById('answers-review');
+    const closeReviewBtn = document.getElementById('close-review');
+    const reviewContent = document.getElementById('review-content');
+    const backBtn = document.getElementById('back-btn');
+    
+    // State variables
+    let currentQuiz = null;
+    let userAnswers = {};
+    
+    // Add animations to form inputs for better UX
+    const formInputs = document.querySelectorAll('.form-control, .form-select');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('input-focused');
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('input-focused');
+        });
+    });
+    
+    // Back button handler
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = '/dashboard';
+        });
+    }
+    
+    // Form submission
+    if (quizForm) {
+        quizForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Clear any previous error messages
+            const previousErrors = document.querySelectorAll('.error-message');
+            previousErrors.forEach(error => error.remove());
+            
+            // Get form data
+            const formData = new FormData(quizForm);
+            const quizData = {
+                topic: formData.get('topic'),
+                quiz_type: formData.get('quiz_type'),
+                question_count: formData.get('question_count'),
+                difficulty: formData.get('difficulty')
+            };
+            
+            // Show loading with animation
+            quizForm.parentElement.parentElement.style.opacity = '0';
+            setTimeout(() => {
+                quizForm.parentElement.parentElement.style.display = 'none';
+                quizLoading.style.display = 'flex';
+                setTimeout(() => {
+                    quizLoading.style.opacity = '1';
+                }, 50);
+            }, 300);
+            
+            // Reset user answers
+            userAnswers = {};
+            
+            // Call API to generate quiz
+            fetch('/api/generate-quiz', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(quizData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading
+                quizLoading.style.opacity = '0';
+                setTimeout(() => {
+                    quizLoading.style.display = 'none';
+                
+                    if (data.error) {
+                        // Create a more detailed error message
+                        let errorMessage = data.error;
+                        
+                        // If there are additional details, add them
+                        if (data.details) {
+                            errorMessage += `: ${data.details}`;
+                        }
+                        
+                        // Show the error in a visible error box instead of just a toast
+                        const errorBox = document.createElement('div');
+                        errorBox.className = 'error-message';
+                        errorBox.innerHTML = `
+                            <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
+                            <div class="error-content">
+                                <h3>Error Generating Quiz</h3>
+                                <p>${errorMessage}</p>
+                                <p class="error-hint">Try rephrasing your topic or selecting a different quiz type.</p>
+                            </div>
+                        `;
+                        
+                        // Insert error box before the form
+                        quizForm.parentElement.prepend(errorBox);
+                        
+                        quizForm.parentElement.parentElement.style.display = 'block';
+                        setTimeout(() => {
+                            quizForm.parentElement.parentElement.style.opacity = '1';
+                        }, 50);
+                        
+                        showToast('Error generating quiz', 'error');
+                        return;
+                    }
+                    
+                    // Store quiz data
+                    currentQuiz = data.quiz;
+                    
+                    // Update quiz info
+                    quizTopicDisplay.textContent = quizData.topic;
+                    quizQuestionCount.textContent = `${currentQuiz.questions.length} Questions`;
+                    
+                    const difficultyMap = {
+                        'beginner': 'Beginner',
+                        'intermediate': 'Intermediate',
+                        'advanced': 'Advanced',
+                        'mixed': 'Mixed Difficulty'
+                    };
+                    quizDifficultyDisplay.textContent = difficultyMap[quizData.difficulty] || quizData.difficulty;
+                    
+                    // Render quiz
+                    renderQuiz(currentQuiz, quizQuestions, quizData.quiz_type);
+                    
+                    // Show quiz container with animation
+                    quizContainer.style.display = 'block';
+                    setTimeout(() => {
+                        quizContainer.style.opacity = '1';
+                    }, 50);
+                }, 300);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                quizLoading.style.opacity = '0';
+                setTimeout(() => {
+                    quizLoading.style.display = 'none';
+                    quizForm.parentElement.parentElement.style.display = 'block';
+                    setTimeout(() => {
+                        quizForm.parentElement.parentElement.style.opacity = '1';
+                    }, 50);
+                }, 300);
+                showToast('Error generating quiz', 'error');
+            });
+        });
+    }
+    
+    // Function to render quiz
+    function renderQuiz(quiz, container, quizType) {
+        container.innerHTML = '';
+        
+        if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+            container.innerHTML = '<p>No questions available</p>';
+            return;
+        }
+        
+        quiz.questions.forEach((q, qIndex) => {
+            const questionCard = document.createElement('div');
+            questionCard.className = 'question-card';
+            questionCard.dataset.questionId = qIndex;
+            questionCard.style.setProperty('--i', qIndex); // Set animation delay variable
+            
+            // Question number
+            const questionNumber = document.createElement('div');
+            questionNumber.className = 'question-number';
+            questionNumber.textContent = `Question ${qIndex + 1}`;
+            
+            // Question text
+            const questionText = document.createElement('div');
+            questionText.className = 'question-text';
+            questionText.textContent = q.question;
+            
+            // Add elements to question card
+            questionCard.appendChild(questionNumber);
+            questionCard.appendChild(questionText);
+            
+            // Handle different quiz types
+            if (quizType === 'mcq') {
+                // Create options list for MCQ
+                const optionsList = document.createElement('ul');
+                optionsList.className = 'options-list';
+                
+                q.options.forEach((option, oIndex) => {
+                    const optionItem = document.createElement('li');
+                    optionItem.className = 'option-item';
+                    optionItem.textContent = option;
+                    optionItem.dataset.optionIndex = oIndex;
+                    
+                    optionItem.addEventListener('click', function() {
+                        // Remove selected class from all options in this question
+                        const allOptions = optionsList.querySelectorAll('.option-item');
+                        allOptions.forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        
+                        // Add selected class to clicked option
+                        this.classList.add('selected');
+                        
+                        // Store user answer
+                        userAnswers[qIndex] = {
+                            type: 'mcq',
+                            selectedIndex: oIndex,
+                            selectedText: option
+                        };
+                    });
+                    
+                    optionsList.appendChild(optionItem);
+                });
+                
+                questionCard.appendChild(optionsList);
+                
+            } else if (quizType === 'direct') {
+                // Create direct answer input
+                const directAnswerContainer = document.createElement('div');
+                directAnswerContainer.className = 'direct-answer-container';
+                
+                const answerInput = document.createElement('textarea');
+                answerInput.className = 'form-control direct-answer-input';
+                answerInput.placeholder = 'Type your answer here...';
+                answerInput.rows = 3;
+                
+                answerInput.addEventListener('input', function() {
+                    // Store user answer
+                    userAnswers[qIndex] = {
+                        type: 'direct',
+                        answerText: this.value
+                    };
+                });
+                
+                // File upload option for direct answers
+                const fileUploadContainer = document.createElement('div');
+                fileUploadContainer.className = 'file-upload-container';
+                
+                const fileUploadLabel = document.createElement('label');
+                fileUploadLabel.className = 'file-upload-btn';
+                fileUploadLabel.innerHTML = '<i class="fas fa-image"></i> Upload Image';
+                
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                fileInput.style.display = 'none';
+                fileInput.dataset.questionId = qIndex;
+                
+                const fileNameDisplay = document.createElement('span');
+                fileNameDisplay.className = 'file-name-display';
+                
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+                        fileNameDisplay.textContent = file.name;
+                        
+                        // Show loading
+                        showToast('Processing image...', 'info');
+                        
+                        // Create FormData for file upload
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        // Upload file and process with OCR
+                        fetch('/api/ocr-process', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                showToast(data.error, 'error');
+                                return;
+                            }
+                            
+                            // Update text area with OCR result
+                            answerInput.value = data.text;
+                            
+                            // Store user answer
+                            userAnswers[qIndex] = {
+                                type: 'direct',
+                                answerText: data.text,
+                                hasImage: true,
+                                imagePath: data.file_path
+                            };
+                            
+                            showToast('Image processed successfully', 'success');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('Error processing image', 'error');
+                        });
+                    }
+                });
+                
+                fileUploadLabel.appendChild(fileInput);
+                fileUploadContainer.appendChild(fileUploadLabel);
+                fileUploadContainer.appendChild(fileNameDisplay);
+                
+                directAnswerContainer.appendChild(answerInput);
+                directAnswerContainer.appendChild(fileUploadContainer);
+                questionCard.appendChild(directAnswerContainer);
+            }
+            
+            // Append question card to container
+            container.appendChild(questionCard);
+        });
+    }
+    
+    // Submit quiz
+    if (submitQuizBtn) {
+        submitQuizBtn.addEventListener('click', function() {
+            if (!currentQuiz) return;
+            
+            // Check if all questions are answered
+            const questionCount = currentQuiz.questions.length;
+            const answeredCount = Object.keys(userAnswers).length;
+            
+            if (answeredCount < questionCount) {
+                showToast(`Please answer all questions (${answeredCount}/${questionCount} answered)`, 'warning');
+                return;
+            }
+            
+            // Show loading
+            quizLoading.style.display = 'flex';
+            quizContainer.style.display = 'none';
+            
+            // Submit answers for evaluation
+            fetch('/api/evaluate-quiz', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    quiz: currentQuiz,
+                    answers: userAnswers
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading
+                quizLoading.style.display = 'none';
+                
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    quizContainer.style.display = 'block';
+                    return;
+                }
+                
+                // Update results
+                const correct = data.results.correct;
+                const total = data.results.total;
+                const percent = Math.round((correct / total) * 100);
+                
+                scorePercent.textContent = `${percent}%`;
+                correctCount.textContent = correct;
+                incorrectCount.textContent = total - correct;
+                totalQuestions.textContent = total;
+                
+                // Update feedback
+                resultsFeedback.innerHTML = data.results.feedback;
+                
+                // Store evaluation results for review
+                currentQuiz.evaluation = data.results.evaluation;
+                
+                // Show results
+                quizResults.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                quizLoading.style.display = 'none';
+                quizContainer.style.display = 'block';
+                showToast('Error evaluating quiz', 'error');
+            });
+        });
+    }
+    
+    // New quiz buttons
+    if (newQuizBtn) {
+        newQuizBtn.addEventListener('click', resetQuiz);
+    }
+    
+    if (newQuizResultsBtn) {
+        newQuizResultsBtn.addEventListener('click', resetQuiz);
+    }
+    
+    function resetQuiz() {
+        // Reset state
+        currentQuiz = null;
+        userAnswers = {};
+        
+        // Hide containers
+        quizContainer.style.display = 'none';
+        quizResults.style.display = 'none';
+        answersReview.style.display = 'none';
+        
+        // Show form
+        quizForm.parentElement.parentElement.style.display = 'block';
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+    }
+    
+    // Review answers
+    if (reviewAnswersBtn) {
+        reviewAnswersBtn.addEventListener('click', function() {
+            if (!currentQuiz || !currentQuiz.evaluation) return;
+            
+            // Populate review content
+            reviewContent.innerHTML = '';
+            
+            currentQuiz.questions.forEach((question, index) => {
+                const evaluation = currentQuiz.evaluation[index];
+                const userAnswer = userAnswers[index];
+                
+                const reviewItem = document.createElement('div');
+                reviewItem.className = 'review-item';
+                
+                const reviewQuestion = document.createElement('div');
+                reviewQuestion.className = 'review-question';
+                reviewQuestion.textContent = `Q${index + 1}: ${question.question}`;
+                
+                const reviewAnswer = document.createElement('div');
+                reviewAnswer.className = `review-answer ${evaluation.correct ? 'correct' : 'incorrect'}`;
+                
+                if (userAnswer.type === 'mcq') {
+                    reviewAnswer.textContent = `Your answer: ${userAnswer.selectedText}`;
+                } else {
+                    reviewAnswer.textContent = `Your answer: ${userAnswer.answerText}`;
+                }
+                
+                reviewItem.appendChild(reviewQuestion);
+                reviewItem.appendChild(reviewAnswer);
+                
+                if (!evaluation.correct) {
+                    const correctAnswer = document.createElement('div');
+                    correctAnswer.className = 'review-correct-answer';
+                    
+                    if (userAnswer.type === 'mcq') {
+                        const correctOptionIndex = question.correct_index;
+                        correctAnswer.textContent = `Correct answer: ${question.options[correctOptionIndex]}`;
+                    } else {
+                        correctAnswer.textContent = `Correct answer: ${evaluation.correctAnswer}`;
+                    }
+                    
+                    reviewItem.appendChild(correctAnswer);
+                }
+                
+                if (evaluation.explanation) {
+                    const explanation = document.createElement('div');
+                    explanation.className = 'review-explanation';
+                    explanation.textContent = evaluation.explanation;
+                    reviewItem.appendChild(explanation);
+                }
+                
+                reviewContent.appendChild(reviewItem);
+            });
+            
+            // Show review panel
+            answersReview.style.display = 'flex';
+        });
+    }
+    
+    // Close review
+    if (closeReviewBtn) {
+        closeReviewBtn.addEventListener('click', function() {
+            answersReview.style.display = 'none';
+        });
+    }
+    
+    // Toast notification function
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `flash-message ${type}`;
+        toast.innerHTML = `
+            <span>${message}</span>
+            <span class="flash-close">&times;</span>
+        `;
+        
+        // Add to flash messages container or create one
+        let flashContainer = document.querySelector('.flash-messages');
+        if (!flashContainer) {
+            flashContainer = document.createElement('div');
+            flashContainer.className = 'flash-messages';
+            document.body.appendChild(flashContainer);
+        }
+        
+        flashContainer.appendChild(toast);
+        
+        // Add close functionality
+        const closeBtn = toast.querySelector('.flash-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            });
+        }
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 5000);
+    }
+});
+</script>
+{% endblock %} 

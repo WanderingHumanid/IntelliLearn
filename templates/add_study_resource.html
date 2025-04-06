@@ -2,87 +2,63 @@
 
 {% block title %}Add Study Resource - IntelliLearn{% endblock %}
 
-{% block page_title %}Add Study Resource{% endblock %}
+{% block page_title %}
+    Add Study Resource
+    <div class="page-actions">
+        <a href="{{ url_for('study_resources') }}" class="btn btn-secondary btn-sm" style="margin-top: 20px; font-size: 16px;">
+            <i class="fas fa-arrow-left"></i> Back to Resources
+        </a>
+    </div>
+{% endblock %}
 
 {% block content %}
 <div class="add-resource-container">
-    <div class="resource-form-card">
-        <form method="POST" action="{{ url_for('add_study_resource') }}" class="resource-form">
-            <div class="form-group">
-                <label for="title">Resource Title</label>
-                <input type="text" id="title" name="title" required placeholder="Enter resource title" class="form-input">
-            </div>
-            
-            <div class="form-group">
-                <label for="description">Description</label>
-                <textarea id="description" name="description" rows="4" required placeholder="Describe this resource" class="form-input"></textarea>
-            </div>
-            
-            <div class="form-row">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Create a New Study Resource</h3>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('add_study_resource') }}" method="POST">
                 <div class="form-group">
-                    <label for="type">Resource Type</label>
-                    <select id="type" name="type" required class="form-input">
-                        <option value="" disabled selected>Select resource type</option>
-                        <option value="video">Video Lecture</option>
-                        <option value="notes">Study Notes</option>
-                        <option value="questions">Practice Questions</option>
-                        <option value="book">Book</option>
-                    </select>
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" id="title" name="title" class="form-control" placeholder="Enter resource title" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="subject">Subject</label>
-                    <input type="text" id="subject" name="subject" required placeholder="e.g. Mathematics, Physics" class="form-input">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea id="description" name="description" class="form-control" rows="3" placeholder="Describe what this resource covers" required></textarea>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="content">Resource URL or Content</label>
-                <input type="text" id="content" name="content" required placeholder="Enter URL or content" class="form-input">
-                <p class="form-help">For videos and external resources, please provide the full URL.</p>
-            </div>
-            
-            {% if user.is_premium %}
-            <div class="form-group checkbox-group">
-                <input type="checkbox" id="is_premium" name="is_premium" class="form-checkbox">
-                <label for="is_premium">Mark as Premium Resource</label>
-            </div>
-            {% endif %}
-            
-            <div class="form-actions">
-                <a href="{{ url_for('study_resources') }}" class="btn btn-outline">Cancel</a>
-                <button type="submit" class="btn btn-primary">Add Resource</button>
-            </div>
-        </form>
-    </div>
-    
-    <div class="resource-help-card">
-        <div class="help-section">
-            <h3>Resource Types</h3>
-            <ul>
-                <li><strong>Video Lecture:</strong> Links to educational videos or lectures</li>
-                <li><strong>Study Notes:</strong> Comprehensive notes or study materials</li>
-                <li><strong>Practice Questions:</strong> Problems, quizzes, or practice exercises</li>
-                <li><strong>Book:</strong> Textbooks or reference materials</li>
-            </ul>
+                
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="type" class="form-label">Resource Type</label>
+                        <select id="type" name="type" class="form-control" required>
+                            <option value="" selected disabled>Select a type</option>
+                            <option value="notes">Study Notes</option>
+                            <option value="video">Video Lecture</option>
+                            <option value="questions">Practice Questions</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group col-md-6">
+                        <label for="subject" class="form-label">Subject</label>
+                        <input type="text" id="subject" name="subject" class="form-control" placeholder="Enter subject or field" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="content" class="form-label">Content URL or Text</label>
+                    <textarea id="content" name="content" class="form-control" rows="5" placeholder="Enter the content or link to the resource" required></textarea>
+                    <small class="form-text text-muted">For notes, enter the content directly. For videos or external resources, enter the URL.</small>
+                </div>
+                
+                <div class="form-submit">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Resource
+                    </button>
+                </div>
+            </form>
         </div>
-        
-        <div class="help-section">
-            <h3>Tips for Quality Resources</h3>
-            <ul>
-                <li>Provide clear, descriptive titles</li>
-                <li>Include the topic and difficulty level in the description</li>
-                <li>Verify that external links are working properly</li>
-                <li>Use specific subject names for better organization</li>
-            </ul>
-        </div>
-        
-        {% if user.is_premium %}
-        <div class="help-section premium-section">
-            <h3>Premium Resources</h3>
-            <p>As a premium user, you can mark resources as premium-only. These resources will only be accessible to other premium users.</p>
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -90,126 +66,83 @@
 {% block head %}
 <style>
     .add-resource-container {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 25px;
+        max-width: 800px;
+        margin: 0 auto;
     }
     
-    .resource-form-card,
-    .resource-help-card {
+    .card {
         background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
-        padding: 25px;
+        overflow: hidden;
         box-shadow: var(--shadow-sm);
     }
     
-    .resource-form {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+    .card-header {
+        padding: 20px;
+        background-color: var(--bg-tertiary);
+        border-bottom: 1px solid var(--border-color);
+        border-radius: 10px;
+    }
+    
+    .card-title {
+        margin: 0;
+        font-size: 1.3rem;
+    }
+    
+    .card-body {
+        padding: 25px;
     }
     
     .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        margin-bottom: 20px;
     }
     
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
     }
     
-    .form-input {
-        padding: 10px 12px;
+    .form-control {
+        width: 100%;
+        padding: 10px 15px;
         background-color: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--border-radius);
         color: var(--text-primary);
-        font-size: 16px;
-        width: 100%;
+        font-size: 1rem;
     }
     
-    .form-input:focus {
+    .form-control:focus {
         outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
     }
     
-    .form-help {
-        font-size: 0.8rem;
+    .form-text {
+        font-size: 0.85rem;
         color: var(--text-secondary);
-        margin: 4px 0 0 0;
+        margin-top: 5px;
     }
     
-    .checkbox-group {
-        flex-direction: row;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .form-checkbox {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .form-actions {
+    .form-row {
         display: flex;
-        justify-content: flex-end;
-        gap: 15px;
-        margin-top: 10px;
+        gap: 20px;
+        margin-bottom: 20px;
     }
     
-    .help-section {
-        margin-bottom: 25px;
+    .col-md-6 {
+        flex: 1;
     }
     
-    .help-section:last-child {
-        margin-bottom: 0;
-    }
-    
-    .help-section h3 {
-        font-size: 1.1rem;
-        margin: 0 0 12px 0;
-        color: var(--primary-color);
-    }
-    
-    .help-section ul {
-        margin: 0;
-        padding-left: 20px;
-    }
-    
-    .help-section li {
-        margin-bottom: 8px;
-        color: var(--text-secondary);
-    }
-    
-    .premium-section {
-        background-color: rgba(255, 215, 0, 0.1);
-        border-radius: var(--border-radius);
-        padding: 15px;
-        border: 1px solid rgba(255, 215, 0, 0.3);
-    }
-    
-    .premium-section h3 {
-        color: #e6c200;
-    }
-    
-    @media (max-width: 992px) {
-        .add-resource-container {
-            grid-template-columns: 1fr;
-        }
-        
-        .resource-help-card {
-            order: -1;
-        }
+    .form-submit {
+        margin-top: 30px;
     }
     
     @media (max-width: 768px) {
         .form-row {
-            grid-template-columns: 1fr;
-            gap: 20px;
+            flex-direction: column;
+            gap: 0;
         }
     }
 </style>

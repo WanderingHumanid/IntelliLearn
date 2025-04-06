@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - IntelliLearn{% endblock %}
+
+{% block page_title %}
+    Your Profile
+    <div class="page-actions">
+        <button class="btn btn-primary btn-sm" id="edit-profile-btn">
+            <i class="fas fa-edit"></i> Edit Profile
+        </button>
+        <button class="btn btn-success btn-sm" id="save-profile-btn" style="display: none;">
+            <i class="fas fa-save"></i> Save Changes
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="profile-stats">
+            <div class="stat-box">
+                <div class="stat-value user-level">Lvl {{ user.level }}</div>
+                <div class="stat-label">Level</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value user-points">{{ user.points }} pts</div>
+                <div class="stat-label">Points</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ user.streak }} 🔥</div>
+                <div class="stat-label">Streak</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-form">
+        <form id="profile-form" method="post" action="{{ url_for('update_profile') }}">
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Basic Information</h3>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" value="{{ user.username }}" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="member-since">Member Since</label>
+                    <input type="text" id="member-since" value="{{ user.created_at|timestamp_format }}" readonly>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-graduation-cap"></i> Educational Background</h3>
+                <div class="form-group">
+                    <label for="education-level">Education Level</label>
+                    <select id="education-level" name="education_level" disabled>
+                        <option value="" {% if not user.education_level %}selected{% endif %}>Select level</option>
+                        <option value="High School" {% if user.education_level == "High School" %}selected{% endif %}>High School</option>
+                        <option value="Associate's Degree" {% if user.education_level == "Associate's Degree" %}selected{% endif %}>Associate's Degree</option>
+                        <option value="Bachelor's Degree" {% if user.education_level == "Bachelor's Degree" %}selected{% endif %}>Bachelor's Degree</option>
+                        <option value="Master's Degree" {% if user.education_level == "Master's Degree" %}selected{% endif %}>Master's Degree</option>
+                        <option value="Doctorate" {% if user.education_level == "Doctorate" %}selected{% endif %}>Doctorate</option>
+                        <option value="Self-Taught" {% if user.education_level == "Self-Taught" %}selected{% endif %}>Self-Taught</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="field-of-study">Field of Study</label>
+                    <input type="text" id="field-of-study" name="field_of_study" value="{{ user.field_of_study }}" placeholder="E.g. Computer Science, Biology, Literature" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="current-courses">Current Courses</label>
+                    <div class="input-tags-container">
+                        <div id="courses-tags" class="tags-container"></div>
+                        <input type="text" id="current-courses" placeholder="Add a course and press Enter" disabled>
+                        <input type="hidden" name="current_courses" id="courses-hidden" value="{{ user.current_courses|tojson }}">
+                    </div>
+                    <small class="form-help">Press Enter to add each course</small>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-bullseye"></i> Learning Goals</h3>
+                <div class="form-group">
+                    <label for="learning-goals">What are you hoping to learn?</label>
+                    <textarea id="learning-goals" name="learning_goals" rows="4" placeholder="Describe your learning objectives" disabled>{{ user.learning_goals }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="career-goals">Career Aspirations</label>
+                    <input type="text" id="career-goals" name="career_goals" value="{{ user.career_goals }}" placeholder="E.g. Software Engineer, Data Scientist, Teacher" disabled>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-brain"></i> Learning Preferences</h3>
+                <div class="form-group">
+                    <label for="learning-style">Preferred Learning Style</label>
+                    <select id="learning-style" name="preferred_learning_style" disabled>
+                        <option value="" {% if not user.preferred_learning_style %}selected{% endif %}>Select style</option>
+                        <option value="Visual" {% if user.preferred_learning_style == "Visual" %}selected{% endif %}>Visual (images, diagrams)</option>
+                        <option value="Auditory" {% if user.preferred_learning_style == "Auditory" %}selected{% endif %}>Auditory (lectures, discussions)</option>
+                        <option value="Reading/Writing" {% if user.preferred_learning_style == "Reading/Writing" %}selected{% endif %}>Reading/Writing (books, notes)</option>
+                        <option value="Kinesthetic" {% if user.preferred_learning_style == "Kinesthetic" %}selected{% endif %}>Kinesthetic (hands-on, practice)</option>
+                        <option value="Multimodal" {% if user.preferred_learning_style == "Multimodal" %}selected{% endif %}>Multimodal (combination)</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        box-shadow: var(--box-shadow);
+    }
+    
+    .profile-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: var(--accent-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        margin-right: 30px;
+    }
+    
+    .profile-stats {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .stat-box {
+        text-align: center;
+        padding: 15px 20px;
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        min-width: 100px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--accent-primary);
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .form-section {
+        margin-bottom: 30px;
+        padding-bottom: 30px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-section h3 {
+        font-size: 20px;
+        color: var(--accent-primary);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .form-group input[type="text"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: var(--bg-tertiary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 16px;
+        transition: var(--transition);
+    }
+    
+    .form-group input[type="text"]:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: var(--accent-primary);
+        outline: none;
+    }
+    
+    .form-group input[disabled],
+    .form-group select[disabled],
+    .form-group textarea[disabled] {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    .input-tags-container {
+        background-color: var(--bg-tertiary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        padding: 8px;
+    }
+    
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        background-color: rgba(var(--accent-primary-rgb), 0.2);
+        border: 1px solid rgba(var(--accent-primary-rgb), 0.3);
+        color: var(--text-primary);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+    
+    .tag .remove-tag {
+        margin-left: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+    
+    .tag .remove-tag:hover {
+        color: var(--text-primary);
+    }
+    
+    .input-tags-container input[type="text"] {
+        background: none;
+        border: none;
+        width: 100%;
+        padding: 8px;
+        color: var(--text-primary);
+    }
+    
+    .input-tags-container input[type="text"]:focus {
+        outline: none;
+    }
+    
+    .form-help {
+        display: block;
+        color: var(--text-secondary);
+        margin-top: 5px;
+        font-size: 14px;
+    }
+    
+    .page-actions {
+        display: inline-flex;
+        margin-left: 15px;
+        gap: 10px;
+    }
+    
+    .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: var(--bg-tertiary);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: 16px;
+        transition: var(--transition);
+        /* Make pointer events active even when disabled, for dropdown menus */
+        pointer-events: auto !important;
+    }
+    
+    .form-group select[disabled] {
+        opacity: 0.7;
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        /* Override browser-specific styling for disabled dropdowns */
+        -webkit-appearance: menulist;
+        -moz-appearance: menulist;
+        appearance: menulist;
+    }
+    
+    .select-wrapper {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+    
+    .select-wrapper:after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        width: 0; 
+        height: 0; 
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid var(--text-secondary);
+        pointer-events: none;
+    }
+
+    @keyframes tooltip-fade {
+        0% { opacity: 0; transform: translateY(-10px); }
+        10% { opacity: 1; transform: translateY(0); }
+        90% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    #form-tooltip {
+        animation: tooltip-fade 2s ease-in-out;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit profile button
+    const editBtn = document.getElementById('edit-profile-btn');
+    const saveBtn = document.getElementById('save-profile-btn');
+    const form = document.getElementById('profile-form');
+    
+    // Input fields (excluding readonly ones)
+    const inputs = form.querySelectorAll('input:not([readonly]), select, textarea');
+    const selects = form.querySelectorAll('select');
+    
+    // Fix select elements for cross-browser compatibility
+    selects.forEach(select => {
+        // Create a div wrapper to better control the select elements
+        const wrapper = document.createElement('div');
+        wrapper.className = 'select-wrapper';
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+        
+        // Add click listener to handle disabled selects
+        wrapper.addEventListener('click', function(e) {
+            if (select.disabled) {
+                e.preventDefault();
+                const rect = this.getBoundingClientRect();
+                showTooltip('Edit profile to change this value', rect.left, rect.bottom);
+            }
+        });
+    });
+    
+    // Store original select values
+    const originalSelectValues = {};
+    selects.forEach(select => {
+        originalSelectValues[select.id] = select.value;
+        
+        // Prevent changes when disabled
+        select.addEventListener('change', function() {
+            if (this.disabled) {
+                // Revert to original value if disabled
+                this.value = originalSelectValues[this.id];
+                
+                // Show message explaining why it's not changing
+                const rect = this.getBoundingClientRect();
+                showTooltip('Edit profile to change this value', rect.left, rect.bottom);
+                return false;
+            } else {
+                // Update the stored value when enabled and changed
+                originalSelectValues[this.id] = this.value;
+            }
+        });
+    });
+    
+    // Edit mode toggle
+    editBtn.addEventListener('click', function() {
+        inputs.forEach(input => {
+            input.disabled = false;
+        });
+        
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-flex';
+    });
+    
+    // Save button
+    saveBtn.addEventListener('click', function() {
+        form.submit();
+    });
+    
+    // Show tooltip helper function
+    function showTooltip(message, x, y) {
+        let tooltip = document.getElementById('form-tooltip');
+        if (!tooltip) {
+            tooltip = document.createElement('div');
+            tooltip.id = 'form-tooltip';
+            tooltip.style.position = 'absolute';
+            tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.padding = '8px 12px';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '14px';
+            tooltip.style.zIndex = '1000';
+            tooltip.style.pointerEvents = 'none';
+            document.body.appendChild(tooltip);
+        }
+        
+        tooltip.textContent = message;
+        tooltip.style.left = `${x}px`;
+        tooltip.style.top = `${y + 10}px`;
+        tooltip.style.opacity = '1';
+        
+        // Hide after 2 seconds
+        setTimeout(() => {
+            tooltip.style.opacity = '0';
+            setTimeout(() => {
+                if (tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                }
+            }, 300);
+        }, 2000);
+    }
+    
+    // Tags input for courses
+    const coursesInput = document.getElementById('current-courses');
+    const coursesContainer = document.getElementById('courses-tags');
+    const coursesHidden = document.getElementById('courses-hidden');
+    
+    // Initialize tags from hidden field
+    let courses = [];
+    try {
+        courses = JSON.parse(coursesHidden.value || '[]');
+        renderTags();
+    } catch (e) {
+        console.error('Error parsing courses:', e);
+        courses = [];
+    }
+    
+    // Add tag when Enter is pressed
+    coursesInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && this.value.trim()) {
+            e.preventDefault();
+            courses.push(this.value.trim());
+            this.value = '';
+            renderTags();
+            updateHiddenField();
+        }
+    });
+    
+    // Render tags
+    function renderTags() {
+        coursesContainer.innerHTML = '';
+        courses.forEach((course, index) => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `
+                ${course}
+                <span class="remove-tag" data-index="${index}">×</span>
+            `;
+            coursesContainer.appendChild(tag);
+        });
+        
+        // Add remove event listeners
+        document.querySelectorAll('.remove-tag').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                courses.splice(index, 1);
+                renderTags();
+                updateHiddenField();
+            });
+        });
+    }
+    
+    // Update hidden field with JSON
+    function updateHiddenField() {
+        coursesHidden.value = JSON.stringify(courses);
+    }
+});
+</script>
+{% endblock %} 

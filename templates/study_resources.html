@@ -2,157 +2,131 @@
 
 {% block title %}Study Resources - IntelliLearn{% endblock %}
 
-{% block page_title %}Study Resources{% endblock %}
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <h2>Study Resources</h2>
+    <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary" style="margin-top: 20px; font-size: 16px;">
+        <i class="fas fa-plus"></i> Add New Resource
+    </a>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="study-resources-container">
-    <div class="resources-header">
-        <div class="resources-actions">
-            <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Resource
-            </a>
-            {% if user.is_premium %}
-            <a href="{{ url_for('ai_study_help') }}" class="btn btn-secondary">
-                <i class="fas fa-robot"></i> AI Study Help
-            </a>
-            {% endif %}
+<div class="resources-container">
+    <!-- Filters Bar -->
+    <div class="filters-bar">
+        <div class="resource-types">
+            <button class="filter-btn active" data-type="all">All</button>
+            <button class="filter-btn" data-type="notes">Notes</button>
+            <button class="filter-btn" data-type="video">Videos</button>
+            <button class="filter-btn" data-type="practice">Practice</button>
         </div>
-
-        <div class="resources-filters">
-            <div class="filter-group">
-                <label for="type-filter">Type:</label>
-                <select id="type-filter" class="filter-select" onchange="applyFilters()">
-                    <option value="">All Types</option>
-                    <option value="video" {% if selected_type == 'video' %}selected{% endif %}>Video Lectures</option>
-                    <option value="notes" {% if selected_type == 'notes' %}selected{% endif %}>Study Notes</option>
-                    <option value="questions" {% if selected_type == 'questions' %}selected{% endif %}>Practice Questions</option>
-                    <option value="book" {% if selected_type == 'book' %}selected{% endif %}>Books</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label for="subject-filter">Subject:</label>
-                <select id="subject-filter" class="filter-select" onchange="applyFilters()">
-                    <option value="">All Subjects</option>
-                    {% for subject in subjects %}
-                    <option value="{{ subject }}" {% if selected_subject == subject %}selected{% endif %}>{{ subject }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <button onclick="clearFilters()" class="btn btn-outline">
-                <i class="fas fa-times"></i> Clear Filters
-            </button>
+        <div class="subject-filter">
+            <select id="subject-filter" class="form-select">
+                <option value="all">All Subjects</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+            </select>
         </div>
     </div>
 
-    {% if resources %}
+    <!-- Resources Grid -->
     <div class="resources-grid">
         {% for resource in resources %}
-        <div class="resource-card {% if resource.is_premium %}premium-resource{% endif %}">
+        <div class="resource-card" data-type="{{ resource.type }}" data-subject="{{ resource.subject_id }}">
             <div class="resource-header">
-                <div class="resource-type">
-                    {% if resource.resource_type == 'video' %}
-                    <i class="fas fa-video"></i> Video
-                    {% elif resource.resource_type == 'notes' %}
-                    <i class="fas fa-file-alt"></i> Notes
-                    {% elif resource.resource_type == 'questions' %}
-                    <i class="fas fa-question-circle"></i> Questions
-                    {% elif resource.resource_type == 'book' %}
-                    <i class="fas fa-book"></i> Book
-                    {% else %}
-                    <i class="fas fa-file"></i> Resource
-                    {% endif %}
-                </div>
-                {% if resource.is_premium %}
-                <div class="premium-badge">
-                    <i class="fas fa-crown"></i> Premium
-                </div>
-                {% endif %}
+                <span class="resource-type">{{ resource.type }}</span>
+                <span class="resource-subject">{{ resource.subject }}</span>
             </div>
             <div class="resource-content">
                 <h3 class="resource-title">{{ resource.title }}</h3>
                 <p class="resource-description">{{ resource.description }}</p>
-                <div class="resource-subject">{{ resource.subject }}</div>
             </div>
-            <div class="resource-footer">
-                {% if resource.is_premium and not user.is_premium %}
-                <a href="{{ url_for('premium') }}" class="btn btn-premium">
-                    <i class="fas fa-crown"></i> Unlock with Premium
+            <div class="resource-actions">
+                {% if resource.type == 'notes' %}
+                <a href="{{ url_for('view_resource', resource_id=resource.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-book-open"></i> Read
                 </a>
-                {% else %}
-                <a href="{{ resource.content }}" target="_blank" class="btn btn-primary">
-                    <i class="fas fa-external-link-alt"></i> Access Resource
+                {% elif resource.type == 'video' %}
+                <a href="{{ resource.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-play"></i> Watch
                 </a>
+                {% elif resource.type == 'practice' %}
+                <a href="{{ url_for('practice_resource', resource_id=resource.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-tasks"></i> Practice
+                </a>
+                {% endif %}
+                
+                {% if resource.user_id == user.id %}
+                <a href="{{ url_for('edit_resource', resource_id=resource.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <button class="btn btn-sm btn-outline-danger delete-resource" data-id="{{ resource.id }}">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
                 {% endif %}
             </div>
         </div>
+        {% else %}
+        <div class="no-resources-message">
+            <i class="fas fa-info-circle"></i>
+            <p>No study resources found. Be the first to add one!</p>
+            <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary">
+                Add New Resource
+            </a>
+        </div>
         {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-resources">
-        <div class="empty-icon">
-            <i class="fas fa-book"></i>
-        </div>
-        <h3>No Resources Found</h3>
-        <p>Try adjusting your filters or add a new resource.</p>
-        <a href="{{ url_for('add_study_resource') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add Resource
-        </a>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
 
 {% block head %}
 <style>
-    .study-resources-container {
-        display: flex;
-        flex-direction: column;
-        gap: 25px;
+    .resources-container {
+        max-width: 1200px;
+        margin: 0 auto;
     }
     
-    .resources-header {
+    .filters-bar {
         display: flex;
-        flex-direction: column;
-        gap: 20px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
         background-color: var(--bg-secondary);
+        padding: 15px;
         border-radius: var(--border-radius);
-        padding: 20px;
         box-shadow: var(--shadow-sm);
     }
     
-    .resources-actions {
+    .resource-types {
         display: flex;
-        gap: 15px;
+        gap: 10px;
     }
     
-    .resources-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: flex-end;
-    }
-    
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-    
-    .filter-group label {
-        font-size: 0.9rem;
+    .filter-btn {
+        background: none;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 500;
         color: var(--text-secondary);
+        transition: all 0.2s ease;
     }
     
-    .filter-select {
-        padding: 8px 12px;
-        background-color: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
+    .filter-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
         color: var(--text-primary);
-        min-width: 180px;
-        font-size: 0.9rem;
+    }
+    
+    .filter-btn.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .subject-filter {
+        min-width: 200px;
     }
     
     .resources-grid {
@@ -164,11 +138,11 @@
     .resource-card {
         background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
-        box-shadow: var(--shadow-sm);
         overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         display: flex;
         flex-direction: column;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
     .resource-card:hover {
@@ -176,125 +150,89 @@
         box-shadow: var(--shadow-md);
     }
     
-    .premium-resource {
-        border: 2px solid gold;
-    }
-    
     .resource-header {
-        padding: 15px;
-        background-color: var(--bg-tertiary);
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        padding: 12px 15px;
+        background-color: var(--bg-tertiary);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
     
     .resource-type {
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-    }
-    
-    .premium-badge {
-        background-color: gold;
-        color: #333;
-        padding: 4px 8px;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 3px 8px;
         border-radius: 12px;
         font-size: 0.8rem;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 5px;
+        font-weight: 500;
+    }
+    
+    .resource-subject {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
     }
     
     .resource-content {
         padding: 15px;
-        flex: 1;
+        flex-grow: 1;
     }
     
     .resource-title {
         margin: 0 0 10px 0;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
     }
     
     .resource-description {
-        margin: 0 0 15px 0;
         color: var(--text-secondary);
-        font-size: 0.9rem;
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
     
-    .resource-subject {
-        display: inline-block;
-        background-color: var(--bg-primary);
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-        padding: 5px 10px;
-        border-radius: 12px;
-    }
-    
-    .resource-footer {
+    .resource-actions {
         padding: 15px;
-        border-top: 1px solid var(--border-color);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
-        justify-content: flex-end;
+        gap: 10px;
     }
     
-    .empty-resources {
+    .no-resources-message {
+        grid-column: 1 / -1;
         text-align: center;
-        padding: 50px 0;
+        padding: 50px 20px;
         background-color: var(--bg-secondary);
         border-radius: var(--border-radius);
+        color: var(--text-secondary);
     }
     
-    .empty-icon {
-        font-size: 3rem;
+    .no-resources-message i {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
         color: var(--text-secondary);
-        opacity: 0.5;
+    }
+    
+    .no-resources-message p {
         margin-bottom: 20px;
-    }
-    
-    .empty-resources h3 {
-        margin: 0 0 10px 0;
-    }
-    
-    .empty-resources p {
-        margin: 0 0 20px 0;
-        color: var(--text-secondary);
-    }
-    
-    .btn-premium {
-        background-color: gold;
-        color: #333;
-        border: none;
-        padding: 8px 12px;
-        border-radius: var(--border-radius);
-        font-size: 0.9rem;
-        font-weight: bold;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        transition: background-color 0.2s ease;
-    }
-    
-    .btn-premium:hover {
-        background-color: #e6c200;
+        font-size: 1.1rem;
     }
     
     @media (max-width: 768px) {
-        .resources-header {
+        .filters-bar {
             flex-direction: column;
+            gap: 15px;
         }
         
-        .resources-filters {
-            flex-direction: column;
-            align-items: stretch;
+        .resource-types {
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: 5px;
         }
         
-        .filter-select {
+        .subject-filter {
             width: 100%;
         }
     }
@@ -303,30 +241,66 @@
 
 {% block scripts %}
 <script>
-    function applyFilters() {
-        const typeFilter = document.getElementById('type-filter').value;
-        const subjectFilter = document.getElementById('subject-filter').value;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter resources by type
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const resourceCards = document.querySelectorAll('.resource-card');
+        const subjectFilter = document.getElementById('subject-filter');
         
-        let url = "{{ url_for('study_resources') }}";
-        const params = [];
-        
-        if (typeFilter) {
-            params.push(`type=${typeFilter}`);
+        // Function to filter resources
+        function filterResources() {
+            const activeType = document.querySelector('.filter-btn.active').dataset.type;
+            const selectedSubject = subjectFilter.value;
+            
+            resourceCards.forEach(card => {
+                const cardType = card.dataset.type;
+                const cardSubject = card.dataset.subject;
+                
+                let showByType = activeType === 'all' || cardType === activeType;
+                let showBySubject = selectedSubject === 'all' || cardSubject === selectedSubject;
+                
+                if (showByType && showBySubject) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show no resources message if all are filtered out
+            const visibleCards = document.querySelectorAll('.resource-card[style="display: flex;"]');
+            const noResourcesMessage = document.querySelector('.no-resources-message');
+            
+            if (visibleCards.length === 0 && noResourcesMessage) {
+                noResourcesMessage.style.display = 'block';
+            } else if (noResourcesMessage) {
+                noResourcesMessage.style.display = 'none';
+            }
         }
         
+        // Type filter buttons click event
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                filterResources();
+            });
+        });
+        
+        // Subject filter change event
         if (subjectFilter) {
-            params.push(`subject=${subjectFilter}`);
+            subjectFilter.addEventListener('change', filterResources);
         }
         
-        if (params.length > 0) {
-            url += '?' + params.join('&');
-        }
-        
-        window.location.href = url;
-    }
-    
-    function clearFilters() {
-        window.location.href = "{{ url_for('study_resources') }}";
-    }
+        // Delete resource confirmation
+        const deleteButtons = document.querySelectorAll('.delete-resource');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const resourceId = this.dataset.id;
+                if (confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
+                    window.location.href = `/study-resources/delete/${resourceId}`;
+                }
+            });
+        });
+    });
 </script>
 {% endblock %} 

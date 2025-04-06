@@ -128,36 +128,36 @@
             <section class="dashboard-section study-resources-section">
                 <div class="section-header">
                     <h3>Study Resources</h3>
-                    <a href="{{ url_for('study_resources') }}" class="section-link">View All</a>
+                    <a href="{{ url_for('quiz_generator') }}" class="section-link">Quiz Generator</a>
                 </div>
                 
                 <div class="resource-categories">
-                    <a href="{{ url_for('study_resources', type='video') }}" class="resource-category">
-                        <div class="category-icon">
-                            <i class="fas fa-video"></i>
-                        </div>
-                        <div class="category-label">Video Lectures</div>
-                    </a>
-                    
-                    <a href="{{ url_for('study_resources', type='notes') }}" class="resource-category">
-                        <div class="category-icon">
-                            <i class="fas fa-file-alt"></i>
-                        </div>
-                        <div class="category-label">Study Notes</div>
-                    </a>
-                    
-                    <a href="{{ url_for('study_resources', type='questions') }}" class="resource-category">
+                    <a href="{{ url_for('quiz_generator') }}" class="resource-category">
                         <div class="category-icon">
                             <i class="fas fa-question-circle"></i>
                         </div>
-                        <div class="category-label">Practice Questions</div>
+                        <div class="category-label">Take a Quiz</div>
                     </a>
                     
-                    <a href="{{ url_for('add_study_resource') }}" class="resource-category">
+                    <a href="{{ url_for('ai_chat') }}" class="resource-category">
                         <div class="category-icon">
-                            <i class="fas fa-plus-circle"></i>
+                            <i class="fas fa-robot"></i>
                         </div>
-                        <div class="category-label">Add Resource</div>
+                        <div class="category-label">AI Study Help</div>
+                    </a>
+                    
+                    <a href="{{ url_for('roadmap_creator') }}" class="resource-category">
+                        <div class="category-icon">
+                            <i class="fas fa-map"></i>
+                        </div>
+                        <div class="category-label">Learning Path</div>
+                    </a>
+                    
+                    <a href="{{ url_for('forum') }}" class="resource-category">
+                        <div class="category-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="category-label">Community</div>
                     </a>
                 </div>
             </section>
@@ -215,13 +215,13 @@
                         </div>
                     </a>
                     
-                    <a href="{{ url_for('study_resources') }}" class="quick-action-card">
+                    <a href="{{ url_for('quiz_generator') }}" class="quick-action-card">
                         <div class="action-icon">
-                            <i class="fas fa-book"></i>
+                            <i class="fas fa-question-circle"></i>
                         </div>
                         <div class="action-info">
-                            <h4>Study Resources</h4>
-                            <p>Access learning materials</p>
+                            <h4>Quiz Generator</h4>
+                            <p>Test your knowledge</p>
                         </div>
                     </a>
                     
@@ -236,21 +236,6 @@
                     </a>
                 </div>
             </section>
-            
-            {% if not user.is_premium %}
-            <section class="dashboard-section premium-promo-section">
-                <div class="premium-promo">
-                    <div class="premium-icon">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                    <h3>Upgrade to Premium</h3>
-                    <p>Get unlimited roadmaps, AI responses, and exclusive study resources.</p>
-                    <a href="{{ url_for('premium') }}" class="btn btn-premium">
-                        View Premium Benefits
-                    </a>
-                </div>
-            </section>
-            {% endif %}
             
             <section class="dashboard-section leaderboard-preview-section">
                 <div class="section-header">
