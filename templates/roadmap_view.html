@@ -6,16 +6,7 @@
 
 {% block content %}
 <div class="roadmap-container">
-    <!-- Debug information -->
-    <div class="debug-info" style="background-color: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-        <h4>Debug Info:</h4>
-        <p>Roadmap ID: {{ roadmap.id }}</p>
-        <p>Roadmap Title: {{ roadmap.title }}</p>
-        <p>Topics Count: {{ roadmap.topics|length }}</p>
-        {% if roadmap.topics|length == 0 %}
-        <p style="color: red;">No topics found in this roadmap!</p>
-        {% endif %}
-    </div>
+    <!-- Debug information removed -->
     
     <div class="roadmap-header">
         <h1 class="roadmap-title">{{ roadmap.title }}</h1>
