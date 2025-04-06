@@ -1,5 +1,5 @@
 from app import app, db
-from models import *
+from models import User, ForumPost, ForumComment
 
 with app.app_context():
     print("Dropping all tables...")

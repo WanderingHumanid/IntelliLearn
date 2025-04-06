@@ -1,6 +1,9 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
+import sqlalchemy as sa
+from alembic import op
+import sqlite3
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///intellilearn.db'
@@ -34,4 +37,37 @@ with app.app_context():
     
     # Create tables
     db.create_all()
-    print("Database migration complete. The ChatMessage table has been created/updated with new fields.") 
+    print("Database migration complete. The ChatMessage table has been created/updated with new fields.")
+
+# Add topic field to forum posts
+from app import app, db
+from models import ForumPost
+
+def migrate_add_topic_field():
+    with app.app_context():
+        try:
+            # Get the database path
+            db_path = 'instance/app.db'
+            
+            # Connect to the SQLite database
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Check if column exists
+            cursor.execute("PRAGMA table_info(forum_posts)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'topic' not in columns:
+                # Add the topic column if it doesn't exist
+                cursor.execute("ALTER TABLE forum_posts ADD COLUMN topic VARCHAR(50)")
+                conn.commit()
+                print("Added 'topic' column to forum_posts table.")
+            else:
+                print("The 'topic' column already exists in forum_posts table.")
+                
+            conn.close()
+        except Exception as e:
+            print(f"Error during migration: {e}")
+
+if __name__ == "__main__":
+    migrate_add_topic_field() 

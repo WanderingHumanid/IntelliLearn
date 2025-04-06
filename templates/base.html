@@ -17,11 +17,10 @@
             </div>
             <ul class="sidebar-menu">
                 {% if 'username' in session %}
-                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
                 <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('ai_chat') }}"><i class="fas fa-robot"></i> AI Assistant</a></li>
                 <li><a href="{{ url_for('roadmap_creator') }}"><i class="fas fa-map"></i> Roadmap Creator</a></li>
-                <li><a href="{{ url_for('study_resources') }}"><i class="fas fa-book"></i> Study Resources</a></li>
                 <li><a href="{{ url_for('quiz_generator') }}"><i class="fas fa-question-circle"></i> Quiz Generator</a></li>
                 <li><a href="{{ url_for('forum') }}"><i class="fas fa-users"></i> Community Forum</a></li>
                 <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>

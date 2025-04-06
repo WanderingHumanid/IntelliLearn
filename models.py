@@ -66,6 +66,28 @@ class User(db.Model):
             'preferred_learning_style': self.preferred_learning_style
         }
 
+    def get_rewards(self):
+        """Get all rewards that this user has unlocked based on their level"""
+        rewards = UserReward.query.filter(UserReward.level <= self.level, UserReward.is_active == True).all()
+        return [reward.to_dict() for reward in rewards]
+
+    def get_next_rewards(self):
+        """Get rewards that will be unlocked at the next level"""
+        next_rewards = UserReward.query.filter(UserReward.level == self.level + 1, UserReward.is_active == True).all()
+        return [reward.to_dict() for reward in next_rewards]
+
+    def get_all_rewards(self):
+        """Get all rewards up to level 10 with information about whether they're unlocked"""
+        rewards = []
+        all_rewards = UserReward.query.filter(UserReward.level <= 10, UserReward.is_active == True).order_by(UserReward.level).all()
+        
+        for reward in all_rewards:
+            reward_dict = reward.to_dict()
+            reward_dict['unlocked'] = reward.level <= self.level
+            rewards.append(reward_dict)
+        
+        return rewards
+
 # Chat Message model for maintaining chat history
 class ChatMessage(db.Model):
     __tablename__ = 'chat_messages'
@@ -107,7 +129,17 @@ class Roadmap(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     
     def get_content(self):
-        return json.loads(self.content)
+        try:
+            if self.content:
+                content = json.loads(self.content)
+                # Ensure topics is always a list
+                if 'topics' not in content or not isinstance(content['topics'], list):
+                    content['topics'] = []
+                return content
+            return {"topics": []}  # Default empty content
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON content for roadmap {self.id}: {e}")
+            return {"topics": []}  # Return empty content on error
     
     def set_content(self, content):
         self.content = json.dumps(content)
@@ -140,6 +172,7 @@ class ForumPost(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    topic = db.Column(db.String(50), nullable=True)  # New field for post topic
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     has_image = db.Column(db.Boolean, default=False)
     image_path = db.Column(db.String(255), nullable=True)
@@ -157,6 +190,7 @@ class ForumPost(db.Model):
             'content': self.content,
             'author': self.author.username,
             'author_id': self.author_id,
+            'topic': self.topic,  # Include topic in dict
             'timestamp': self.created_at.timestamp(),
             'has_image': self.has_image,
             'image_path': self.image_path,
@@ -224,30 +258,6 @@ class ForumReaction(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
-# Study Resource model
-class StudyResource(db.Model):
-    __tablename__ = 'study_resources'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    resource_type = db.Column(db.String(50), nullable=False)  # video, note, question, etc.
-    content = db.Column(db.Text)  # URL or content text
-    subject = db.Column(db.String(100))
-    is_premium = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'title': self.title,
-            'description': self.description,
-            'resource_type': self.resource_type,
-            'content': self.content,
-            'subject': self.subject,
-            'is_premium': self.is_premium,
-            'created_at': self.created_at.isoformat()
-        }
-
 # Premium Feature model (tracks which premium features are available)
 class PremiumFeature(db.Model):
     __tablename__ = 'premium_features'
@@ -263,5 +273,27 @@ class PremiumFeature(db.Model):
             'name': self.name,
             'description': self.description,
             'price': self.price,
+            'is_active': self.is_active
+        }
+
+# User Reward model for the gamification system
+class UserReward(db.Model):
+    __tablename__ = 'user_rewards'
+    id = db.Column(db.Integer, primary_key=True)
+    level = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    reward_type = db.Column(db.String(50), nullable=False)  # 'feature', 'badge', 'token', etc.
+    icon = db.Column(db.String(50), nullable=True)  # Font Awesome icon class
+    is_active = db.Column(db.Boolean, default=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'level': self.level,
+            'name': self.name,
+            'description': self.description,
+            'reward_type': self.reward_type,
+            'icon': self.icon,
             'is_active': self.is_active
         } 

@@ -1,5 +1,5 @@
 from app import app, db
-from models import ChatMessage, User
+from models import ChatMessage, User, ForumPost, ForumComment
 from sqlalchemy import Column, Boolean, String, Text
 import sqlalchemy as sa
 
@@ -79,5 +79,41 @@ def update_schema():
         else:
             print("All educational fields already exist in users table.")
 
+def update_database():
+    with app.app_context():
+        try:
+            # First check if the tables exist
+            inspector = sa.inspect(db.engine)
+            tables = inspector.get_table_names()
+            
+            if 'forum_posts' not in tables or 'forum_comments' not in tables or 'forum_reactions' not in tables:
+                print("Some forum tables are missing. Creating all tables...")
+                db.create_all()
+                print("All tables have been created successfully.")
+            else:
+                # Tables exist, now check for the topic column
+                try:
+                    post = ForumPost.query.first()
+                    print("Database schema appears to be up to date.")
+                except Exception as e:
+                    if 'no such column' in str(e).lower():
+                        print("Schema mismatch detected. Attempting to add missing columns...")
+                        # Add topic column using raw SQL
+                        conn = db.engine.connect()
+                        try:
+                            conn.execute(sa.text('ALTER TABLE forum_posts ADD COLUMN topic VARCHAR(50)'))
+                            conn.commit()
+                            print("Added topic column to forum_posts table.")
+                        except Exception as e:
+                            if 'duplicate column name' in str(e).lower():
+                                print("Topic column already exists.")
+                            else:
+                                print(f"Error adding topic column: {e}")
+                    else:
+                        print(f"Unexpected error: {e}")
+        except Exception as e:
+            print(f"Error: {e}")
+
 if __name__ == '__main__':
-    update_schema() 
+    update_schema()
+    update_database() 

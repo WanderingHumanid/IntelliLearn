@@ -5,13 +5,13 @@ A personalized learning platform with AI-powered roadmaps, interactive forums, a
 ## Features
 
 - **AI-Powered Learning Assistant**: Chat with an AI assistant that knows your learning progress
-- **Custom Learning Roadmaps**: Generate personalized learning paths for any topic
+- **Custom Learning Roadmaps**: Generate personalized learning paths for any topic with interactive, clickable flowcharts
 - **Interactive Forums**: Engage with other learners in community discussions
 - **Gamification**: Earn points, level up, and maintain streaks as you learn
 - **Quizzes**: Test your knowledge with AI-generated quizzes
 - **Leaderboards**: Track your progress against other learners
 
- ## Showcase:
+## Showcase:
  - Home Page:
 ![HomePage](images/homepage.gif)
 - Dashboard:
@@ -26,12 +26,13 @@ This application is built with:
 - **Backend**: Flask (Python)
 - **Frontend**: HTML, CSS, JavaScript
 - **Database**: SQLite with SQLAlchemy
-- **AI Integration**: Ollama API with LLama 3.2 model
+- **AI Integration**: Ollama API with LLama 3.2 and Mistral models
+- **Visualization**: Mermaid.js for interactive flowcharts
 
 ## Prerequisites
 
 - Python 3.8+
-- [Ollama](https://ollama.ai/) with the LLama 3.2 model installed
+- [Ollama](https://ollama.ai/) with the LLama 3.2 and Mistral models installed
 - Ollama server running on port 11434
 
 ## Installation
@@ -53,9 +54,10 @@ This application is built with:
    pip install -r requirements.txt
    ```
 
-4. Make sure Ollama is running with the LLama 3.2 model:
+4. Make sure Ollama is running with the required models:
    ```
-   ollama run llama3.2
+   ollama run llama3.2  # For most operations
+   ollama run mistral   # For roadmap creation
    ```
 
 5. Run the database migration script (only needed once):
@@ -98,8 +100,6 @@ learning-roadmap-platform/
     ├── leaderboard.html # User rankings
     ├── roadmap_creator.html # Roadmap creation tool
     ├── roadmap_view.html   # Roadmap view page
-    ├── study_resources.html # Study resources page
-    ├── ai_study_help.html  # AI study help (premium feature)
     └── premium.html       # Premium features page
 ```
 
@@ -110,14 +110,13 @@ The application uses SQLite with SQLAlchemy for data storage. The database inclu
 - User accounts and profiles
 - Learning roadmaps
 - Forum posts and comments
-- Study resources
 - Premium features
 
 ## Future Enhancements
 
 - User profile customization
 - Advanced analytics and progress tracking
-- Document/Image processing through Tesseract/OCR.
+- Document/Image processing through Tesseract/OCR
 - More accessibility options in the Forum section
 - Mobile application support
 - Migrate to a more scalable database (PostgreSQL/MongoDB)

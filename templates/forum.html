@@ -7,7 +7,9 @@
 {% block content %}
 <div class="forum-container">
     <div class="forum-header">
-        <p>Connect with other learners, share resources, ask questions, and help each other succeed.</p>
+        <div class="header-info">
+            <p>Connect with other learners, share resources, ask questions, and help each other succeed.</p>
+        </div>
         
         {% if 'username' in session %}
         <button class="btn btn-primary" id="new-post-btn">
@@ -20,15 +22,69 @@
         {% endif %}
     </div>
     
-    <div class="forum-filters">
-        <div class="filter-group">
-            <label for="filter-sort">Sort by:</label>
-            <select id="filter-sort" class="filter-select">
-                <option value="recent">Most Recent</option>
-                <option value="popular">Most Popular</option>
-            </select>
-        </div>
+    <!-- Search and Filter Bar -->
+    <div class="forum-search-filter">
+        <form class="search-form" method="GET" action="{{ url_for('forum') }}">
+            <div class="search-container">
+                <input type="text" name="search" placeholder="Search posts..." value="{{ current_search }}">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="filter-topic">Topic:</label>
+                    <select id="filter-topic" name="topic" class="filter-select">
+                        <option value="">All Topics</option>
+                        {% for topic in topics %}
+                        <option value="{{ topic }}" {% if current_topic == topic %}selected{% endif %}>{{ topic }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filter-sort">Sort by:</label>
+                    <select id="filter-sort" name="sort" class="filter-select">
+                        <option value="recent" {% if current_sort == 'recent' %}selected{% endif %}>Most Recent</option>
+                        <option value="popular" {% if current_sort == 'popular' %}selected{% endif %}>Most Popular</option>
+                        <option value="likes" {% if current_sort == 'likes' %}selected{% endif %}>Most Liked</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+                
+                {% if current_search or current_topic or current_sort != 'recent' %}
+                <a href="{{ url_for('forum') }}" class="btn btn-outline btn-sm">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
     </div>
+    
+    <!-- Active filters display -->
+    {% if current_search or current_topic %}
+    <div class="active-filters">
+        <span class="filters-label">Active filters:</span>
+        
+        {% if current_search %}
+        <span class="filter-badge">
+            Search: "{{ current_search }}"
+            <a href="{{ url_for('forum', topic=current_topic, sort=current_sort) }}" class="remove-filter">×</a>
+        </span>
+        {% endif %}
+        
+        {% if current_topic %}
+        <span class="filter-badge">
+            Topic: {{ current_topic }}
+            <a href="{{ url_for('forum', search=current_search, sort=current_sort) }}" class="remove-filter">×</a>
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
     
     <div id="forum-posts" class="posts-container">
         {% if posts %}
@@ -44,6 +100,15 @@
                             <div class="post-time" data-timestamp="{{ post.timestamp }}">{{ post.timestamp|timestamp_format }}</div>
                         </div>
                     </div>
+                    
+                    {% if post.topic %}
+                    <div class="post-topic">
+                        <a href="{{ url_for('forum', topic=post.topic) }}" class="topic-badge">
+                            {{ post.topic }}
+                        </a>
+                    </div>
+                    {% endif %}
+                    
                     {% if session.username and post.author == session.username %}
                     <div class="post-options">
                         <button class="btn-delete-post" data-post-id="{{ post.id }}">
@@ -63,14 +128,16 @@
                 {% endif %}
                 
                 <div class="post-actions">
-                    <button class="btn-action btn-like {% if post.user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}">
-                        <i class="fas fa-thumbs-up"></i> <span class="like-count">{{ post.likes }}</span>
-                    </button>
-                    <button class="btn-action btn-dislike {% if post.user_reaction == 'dislike' %}active{% endif %}" data-post-id="{{ post.id }}">
-                        <i class="fas fa-thumbs-down"></i> <span class="dislike-count">{{ post.dislikes }}</span>
-                    </button>
+                    <div class="reaction-buttons">
+                        <button class="btn-action btn-like {% if post.user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}">
+                            <i class="fas fa-thumbs-up"></i> <span class="like-count">{{ post.likes }}</span>
+                        </button>
+                        <button class="btn-action btn-dislike {% if post.user_reaction == 'dislike' %}active{% endif %}" data-post-id="{{ post.id }}">
+                            <i class="fas fa-thumbs-down"></i> <span class="dislike-count">{{ post.dislikes }}</span>
+                        </button>
+                    </div>
                     <button class="btn-action btn-comments">
-                        <i class="far fa-comment"></i> {{ post.comments|length }} Comments
+                        <i class="far fa-comment"></i> <span class="comment-count">{{ post.comments|length }}</span> Comments
                     </button>
                 </div>
                 
@@ -131,6 +198,14 @@
             {% endfor %}
         {% else %}
             <div class="empty-state">
+                {% if current_search or current_topic %}
+                <i class="fas fa-search empty-icon"></i>
+                <h3>No matching posts found</h3>
+                <p>Try changing your search criteria or remove some filters</p>
+                <a href="{{ url_for('forum') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear All Filters
+                </a>
+                {% else %}
                 <i class="fas fa-comments empty-icon"></i>
                 <h3>No posts yet</h3>
                 <p>Be the first to start a discussion!</p>
@@ -142,6 +217,7 @@
                 <a href="{{ url_for('login') }}" class="btn btn-primary">
                     <i class="fas fa-sign-in-alt"></i> Login to Post
                 </a>
+                {% endif %}
                 {% endif %}
             </div>
         {% endif %}
@@ -160,6 +236,23 @@
                 <div class="form-group">
                     <label for="post-title" class="form-label">Title</label>
                     <input type="text" id="post-title" name="title" required placeholder="What's your topic about?">
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-topic" class="form-label">Topic</label>
+                    <select id="post-topic" name="topic" class="form-control">
+                        <option value="">Select a Topic (Optional)</option>
+                        <option value="Question">Question</option>
+                        <option value="Discussion">Discussion</option>
+                        <option value="Resource">Resource</option>
+                        <option value="Study Group">Study Group</option>
+                        <option value="Project">Project</option>
+                        <option value="Career">Career</option>
+                        <option value="Help Needed">Help Needed</option>
+                        <option value="Success Story">Success Story</option>
+                        <option value="News">News</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -208,10 +301,51 @@
         max-width: 70%;
     }
     
-    .forum-filters {
+    /* Search and filter styles */
+    .forum-search-filter {
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .search-form {
         display: flex;
-        justify-content: flex-end;
-        margin-bottom: 10px;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .search-container {
+        display: flex;
+        position: relative;
+    }
+    
+    .search-container input[type="text"] {
+        flex: 1;
+        padding: 12px 48px 12px 12px;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+    
+    .search-btn {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 8px;
+    }
+    
+    .filters-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
     }
     
     .filter-group {
@@ -223,10 +357,45 @@
     .filter-select {
         padding: 8px 12px;
         border-radius: var(--border-radius);
-        background-color: var(--bg-tertiary);
+        background-color: var(--bg-secondary);
         color: var(--text-primary);
         border: 1px solid rgba(255, 255, 255, 0.1);
         font-size: 14px;
+    }
+    
+    .active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .filters-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .filter-badge {
+        display: inline-flex;
+        align-items: center;
+        background-color: var(--accent-primary-transparent);
+        color: var(--accent-primary);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 13px;
+    }
+    
+    .remove-filter {
+        margin-left: 6px;
+        font-size: 18px;
+        text-decoration: none;
+        color: var(--text-primary);
+        opacity: 0.6;
+    }
+    
+    .remove-filter:hover {
+        opacity: 1;
     }
     
     .posts-container {
@@ -252,6 +421,27 @@
     .post-author {
         display: flex;
         align-items: center;
+    }
+    
+    .post-topic {
+        margin-left: auto;
+        margin-right: 10px;
+    }
+    
+    .topic-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background-color: var(--accent-secondary-transparent);
+        color: var(--accent-secondary);
+        border-radius: 20px;
+        font-size: 12px;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .topic-badge:hover {
+        background-color: var(--accent-secondary);
+        color: var(--bg-primary);
     }
     
     .author-avatar {
@@ -289,8 +479,13 @@
     
     .post-actions {
         display: flex;
-        gap: 15px;
+        justify-content: space-between;
         margin-bottom: 15px;
+    }
+    
+    .reaction-buttons {
+        display: flex;
+        gap: 10px;
     }
     
     .btn-action {
@@ -309,6 +504,18 @@
     .btn-action:hover {
         background-color: var(--bg-secondary);
         color: var(--text-primary);
+    }
+    
+    .btn-like.active {
+        color: var(--success);
+    }
+    
+    .btn-dislike.active {
+        color: var(--danger);
+    }
+    
+    .like-count, .dislike-count, .comment-count {
+        font-weight: 600;
     }
     
     .comments-container {
@@ -421,22 +628,6 @@
         overflow-y: auto;
     }
     
-    @media (max-width: 768px) {
-        .forum-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-        }
-        
-        .forum-header p {
-            max-width: 100%;
-        }
-        
-        .forum-filters {
-            justify-content: flex-start;
-        }
-    }
-    
     .post-image, .comment-image {
         margin-bottom: 15px;
         border-radius: var(--border-radius);
@@ -499,14 +690,12 @@
     }
     
     .file-input-icon {
+        padding: 8px;
+        background-color: var(--bg-tertiary);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
         cursor: pointer;
         transition: var(--transition);
     }
@@ -515,77 +704,34 @@
         background-color: var(--accent-primary);
     }
     
-    .btn-like.active, .btn-like-comment.active {
-        color: #4CAF50;
-    }
-    
-    .btn-dislike.active, .btn-dislike-comment.active {
-        color: #F44336;
-    }
-    
-    .comment-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-    }
-    
-    /* Delete button styles */
-    .post-options, .comment-options {
-        display: flex;
-        align-items: center;
-    }
-    
-    .btn-delete-post, .btn-delete-comment {
-        background-color: transparent;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 50%;
-        transition: var(--transition);
-    }
-    
-    .btn-delete-post:hover, .btn-delete-comment:hover {
-        color: var(--danger);
-        background-color: rgba(255, 0, 0, 0.1);
-    }
-    
-    /* Confirmation modal */
-    .confirm-modal {
-        display: none;
-        position: fixed;
-        z-index: 100;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-    }
-    
-    .confirm-modal-content {
-        background-color: var(--bg-secondary);
-        margin: 15% auto;
-        padding: 20px;
-        border-radius: var(--border-radius);
-        max-width: 400px;
-        text-align: center;
-    }
-    
-    .confirm-modal-actions {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 20px;
-    }
-    
-    .btn-cancel {
-        background-color: var(--bg-tertiary);
-    }
-    
-    .btn-confirm {
-        background-color: var(--danger);
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .forum-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .forum-header p {
+            max-width: 100%;
+        }
+        
+        .search-form {
+            flex-direction: column;
+        }
+        
+        .filters-container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .filter-group {
+            width: 100%;
+        }
+        
+        .filter-select {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -593,12 +739,13 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Modal elements
-        const newPostModal = document.getElementById('new-post-modal');
         const newPostBtn = document.getElementById('new-post-btn');
         const emptyNewPostBtn = document.getElementById('empty-new-post-btn');
+        const newPostModal = document.getElementById('new-post-modal');
         const modalClose = document.querySelector('.modal-close');
         const forumPostForm = document.getElementById('forum-post-form');
+        const filterTopicSelect = document.getElementById('filter-topic');
+        const filterSortSelect = document.getElementById('filter-sort');
         
         // Show modal when button is clicked
         if (newPostBtn) {
@@ -627,6 +774,23 @@
             }
         });
         
+        // Handle filter changes
+        if (filterTopicSelect) {
+            filterTopicSelect.addEventListener('change', function() {
+                if (this.form) {
+                    this.form.submit();
+                }
+            });
+        }
+        
+        if (filterSortSelect) {
+            filterSortSelect.addEventListener('change', function() {
+                if (this.form) {
+                    this.form.submit();
+                }
+            });
+        }
+        
         // Toggle comments visibility
         document.querySelectorAll('.btn-comments').forEach(button => {
             button.addEventListener('click', function() {
@@ -649,42 +813,6 @@
         document.querySelectorAll('.comments-container').forEach(container => {
             container.style.display = 'none';
         });
-        
-        // Sort posts
-        const sortSelect = document.getElementById('filter-sort');
-        
-        if (sortSelect) {
-            sortSelect.addEventListener('change', function() {
-                const posts = document.querySelectorAll('.forum-post');
-                const postsContainer = document.getElementById('forum-posts');
-                
-                if (this.value === 'recent') {
-                    // Sort by most recent timestamps
-                    const sortedPosts = Array.from(posts).sort((a, b) => {
-                        const aTimestamp = parseFloat(a.querySelector('.post-time').getAttribute('data-timestamp') || 0);
-                        const bTimestamp = parseFloat(b.querySelector('.post-time').getAttribute('data-timestamp') || 0);
-                        return bTimestamp - aTimestamp; // descending order (newest first)
-                    });
-                    
-                    postsContainer.innerHTML = '';
-                    sortedPosts.forEach(post => {
-                        postsContainer.appendChild(post);
-                    });
-                } else if (this.value === 'popular') {
-                    // Sort by most comments
-                    const sortedPosts = Array.from(posts).sort((a, b) => {
-                        const aComments = a.querySelectorAll('.comment').length;
-                        const bComments = b.querySelectorAll('.comment').length;
-                        return bComments - aComments;
-                    });
-                    
-                    postsContainer.innerHTML = '';
-                    sortedPosts.forEach(post => {
-                        postsContainer.appendChild(post);
-                    });
-                }
-            });
-        }
         
         // Post image preview
         const postImageInput = document.getElementById('post-image');
@@ -1028,12 +1156,6 @@
                 }
             });
         });
-        
-        // Helper function to format timestamps
-        function timestamp_format(timestamp) {
-            const date = new Date(timestamp * 1000);
-            return date.toLocaleString();
-        }
     });
 </script>
 {% endblock %} 

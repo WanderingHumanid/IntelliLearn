@@ -33,7 +33,7 @@
         <p class="loading-subtext">This may take a minute as our AI creates a comprehensive learning path.</p>
     </div>
     
-    <div id="roadmap-result"></div>
+    <div id="roadmap-result" class="roadmap-result"></div>
     
     <div class="roadmap-examples">
         <h3>Popular Roadmap Examples</h3>
@@ -65,9 +65,24 @@
         </div>
     </div>
 </div>
+
+<!-- Node Detail Modal -->
+<div id="detail-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="detail-title"></h2>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="detail-content"></div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block head %}
+<!-- Mermaid.js for interactive flowcharts -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
     .roadmap-creator {
         display: flex;
@@ -116,6 +131,18 @@
         border-top-color: var(--accent-primary);
         border-radius: 50%;
         animation: spin 1s linear infinite;
+    }
+    
+    .spinner-sm {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-top-color: var(--accent-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 10px;
+        vertical-align: middle;
     }
     
     @keyframes spin {
@@ -183,6 +210,63 @@
         margin: 0;
     }
     
+    .roadmap-result {
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        margin-top: 20px;
+    }
+    
+    .roadmap-overview {
+        margin-bottom: 30px;
+    }
+    
+    .roadmap-flowchart {
+        margin-top: 30px;
+        overflow-x: auto;
+    }
+    
+    .mermaid {
+        font-family: var(--font-sans);
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .modal-content {
+        background-color: var(--bg-primary);
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: var(--border-radius);
+        max-width: 600px;
+        box-shadow: var(--box-shadow);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .modal-close {
+        color: var(--text-secondary);
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
     @media (max-width: 768px) {
         .input-container {
             flex-direction: column;
@@ -192,10 +276,38 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         }
     }
+    
+    .additional-content {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        font-size: 14px;
+    }
+    
+    .error {
+        color: var(--error);
+        font-style: italic;
+    }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                diagramPadding: 20,
+                nodeSpacing: 60,
+                rankSpacing: 80
+            }
+        });
+        
         // Example roadmaps clickable
         const exampleCards = document.querySelectorAll('.example-card');
         const topicInput = document.getElementById('roadmap-topic');
@@ -214,6 +326,278 @@
                 }
             });
         });
+        
+        // Handle form submission
+        const roadmapForm = document.getElementById('roadmap-form');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const roadmapResult = document.getElementById('roadmap-result');
+        
+        roadmapForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const topic = topicInput.value.trim();
+            if (!topic) return;
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'flex';
+            roadmapResult.style.display = 'none';
+            roadmapResult.innerHTML = '';
+            
+            // Call API to generate roadmap
+            fetch('/api/create-roadmap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ topic: topic })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                if (data.error) {
+                    roadmapResult.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    roadmapResult.style.display = 'block';
+                    return;
+                }
+                
+                const roadmap = data.roadmap;
+                
+                // Display roadmap overview
+                const overviewHTML = `
+                    <div class="roadmap-overview">
+                        <h2>${roadmap.title}</h2>
+                        <p>${roadmap.description}</p>
+                        <a href="/roadmap/${roadmap.id}" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> View Full Roadmap
+                        </a>
+                    </div>
+                `;
+                
+                // Create mermaid flowchart
+                let mermaidCode = generateMermaidFlowchart(roadmap);
+                
+                roadmapResult.innerHTML = overviewHTML + `
+                    <div class="roadmap-flowchart">
+                        <div class="mermaid">
+                            ${mermaidCode}
+                        </div>
+                    </div>
+                `;
+                
+                roadmapResult.style.display = 'block';
+                
+                // Reinitialize mermaid
+                mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                
+                // Setup node click handlers after mermaid renders
+                setTimeout(() => {
+                    setupNodeClickHandlers(roadmap);
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingIndicator.style.display = 'none';
+                roadmapResult.innerHTML = `<div class="alert alert-danger">An error occurred while generating the roadmap. Please try again.</div>`;
+                roadmapResult.style.display = 'block';
+            });
+        });
+        
+        // Generate Mermaid flowchart from roadmap data
+        function generateMermaidFlowchart(roadmap) {
+            let code = ['graph TD'];
+            
+            // Define styles
+            code.push('classDef goal fill:#6366F1,stroke:#4F46E5,stroke-width:2px,color:white,font-weight:bold');
+            code.push('classDef topic fill:#8B5CF6,stroke:#7C3AED,stroke-width:1px,color:white');
+            code.push('classDef subtopic fill:#EC4899,stroke:#DB2777,stroke-width:1px,color:white');
+            
+            // Create goal node
+            let goalNode = `goal["${roadmap.title}"]`;
+            code.push(goalNode);
+            code.push('class goal goal');
+            
+            // Add topics with proper styling
+            roadmap.topics.forEach((topic, i) => {
+                let topicId = `topic_${i}`;
+                let topicNode = `${topicId}["${topic.name}"]`;
+                code.push(`${goalNode} --> ${topicNode}`);
+                code.push(`click ${topicId} clickHandler`);
+                code.push(`class ${topicId} topic`);
+                
+                // Calculate subtopic layout direction to avoid overlapping
+                // For topics with many subtopics, layout horizontally
+                let direction = topic.subtopics.length > 3 ? 'LR' : 'TD';
+                
+                // For topics with subtopics, group them in a subgraph
+                if (topic.subtopics && topic.subtopics.length > 0) {
+                    code.push(`subgraph ${topicId}_group["${topic.name} Components"]`);
+                    code.push(`direction ${direction}`);
+                    
+                    // Add first subtopic connected to the topic
+                    let firstSubtopicId = `subtopic_${i}_0`;
+                    let firstSubtopic = topic.subtopics[0];
+                    let firstSubtopicNode = `${firstSubtopicId}["${firstSubtopic.name}"]`;
+                    code.push(firstSubtopicNode);
+                    code.push(`click ${firstSubtopicId} clickHandler`);
+                    code.push(`class ${firstSubtopicId} subtopic`);
+                    
+                    // Connect remaining subtopics in sequence
+                    for (let j = 1; j < topic.subtopics.length; j++) {
+                        let subtopicId = `subtopic_${i}_${j}`;
+                        let subtopic = topic.subtopics[j];
+                        let subtopicNode = `${subtopicId}["${subtopic.name}"]`;
+                        
+                        // For horizontal layout, connect from previous subtopic
+                        if (direction === 'LR') {
+                            code.push(subtopicNode);
+                            code.push(`subtopic_${i}_${j-1} --> ${subtopicId}`);
+                        } 
+                        // For vertical layout, connect in parallel
+                        else {
+                            code.push(subtopicNode);
+                        }
+                        
+                        code.push(`click ${subtopicId} clickHandler`);
+                        code.push(`class ${subtopicId} subtopic`);
+                    }
+                    
+                    code.push('end');
+                    
+                    // Connect topic to its subgraph
+                    code.push(`${topicId} --> ${topicId}_group`);
+                }
+            });
+            
+            return code.join('\n');
+        }
+        
+        // Setup click handlers for nodes
+        function setupNodeClickHandlers(roadmap) {
+            const modal = document.getElementById('detail-modal');
+            const modalTitle = document.getElementById('detail-title');
+            const modalContent = document.getElementById('detail-content');
+            const closeBtn = modal.querySelector('.modal-close');
+            
+            // Close modal when clicking X
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+            
+            // Define global click handler function for mermaid
+            window.clickHandler = function(nodeId) {
+                let details;
+                let topicName = "";
+                
+                // Goal node
+                if (nodeId === 'goal') {
+                    details = {
+                        title: roadmap.title,
+                        content: `<p>${roadmap.description}</p>`
+                    };
+                }
+                // Topic node
+                else if (nodeId.startsWith('topic_')) {
+                    const topicIndex = parseInt(nodeId.split('_')[1]);
+                    const topic = roadmap.topics[topicIndex];
+                    topicName = topic.name;
+                    
+                    let resourcesList = '';
+                    if (topic.resources && topic.resources.length > 0) {
+                        resourcesList = `
+                            <h4>Recommended Resources:</h4>
+                            <ul>
+                                ${topic.resources.map(resource => `<li>${resource}</li>`).join('')}
+                            </ul>
+                        `;
+                    }
+                    
+                    details = {
+                        title: topic.name,
+                        content: `
+                            <p>${topic.description}</p>
+                            <p><strong>Estimated Time:</strong> ${topic.estimated_hours} hours</p>
+                            ${resourcesList}
+                            <div id="additional-details" class="loading">
+                                <div class="spinner-sm"></div>
+                                <p>Loading additional information...</p>
+                            </div>
+                        `
+                    };
+                }
+                // Subtopic node
+                else if (nodeId.startsWith('subtopic_')) {
+                    const [_, topicIndex, subtopicIndex] = nodeId.split('_');
+                    const topic = roadmap.topics[parseInt(topicIndex)];
+                    const subtopic = topic.subtopics[parseInt(subtopicIndex)];
+                    topicName = subtopic.name;
+                    
+                    let resourcesList = '';
+                    if (subtopic.resources && subtopic.resources.length > 0) {
+                        resourcesList = `
+                            <h4>Recommended Resources:</h4>
+                            <ul>
+                                ${subtopic.resources.map(resource => `<li>${resource}</li>`).join('')}
+                            </ul>
+                        `;
+                    }
+                    
+                    details = {
+                        title: subtopic.name,
+                        content: `
+                            <p>${subtopic.description}</p>
+                            <p><strong>Estimated Time:</strong> ${subtopic.estimated_hours} hours</p>
+                            <p><strong>Parent Topic:</strong> ${topic.name}</p>
+                            ${resourcesList}
+                            <div id="additional-details" class="loading">
+                                <div class="spinner-sm"></div>
+                                <p>Loading additional information...</p>
+                            </div>
+                        `
+                    };
+                }
+                
+                if (details) {
+                    modalTitle.textContent = details.title;
+                    modalContent.innerHTML = details.content;
+                    modal.style.display = 'block';
+                    
+                    // Fetch additional details using the API if it's a topic or subtopic
+                    if (topicName) {
+                        fetch(`/api/get-topic-details?topic=${encodeURIComponent(topicName)}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const additionalDetails = document.getElementById('additional-details');
+                                if (additionalDetails) {
+                                    if (data.error) {
+                                        additionalDetails.innerHTML = `<p class="error">Unable to load additional details.</p>`;
+                                    } else {
+                                        additionalDetails.innerHTML = `
+                                            <h4>Additional Information</h4>
+                                            <div class="additional-content">${data.details}</div>
+                                        `;
+                                    }
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Error fetching details:", error);
+                                const additionalDetails = document.getElementById('additional-details');
+                                if (additionalDetails) {
+                                    additionalDetails.innerHTML = `<p class="error">Unable to load additional details.</p>`;
+                                }
+                            });
+                    }
+                }
+            };
+        }
     });
 </script>
 {% endblock %} 

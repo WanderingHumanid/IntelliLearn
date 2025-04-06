@@ -6,6 +6,17 @@
 
 {% block content %}
 <div class="roadmap-container">
+    <!-- Debug information -->
+    <div class="debug-info" style="background-color: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+        <h4>Debug Info:</h4>
+        <p>Roadmap ID: {{ roadmap.id }}</p>
+        <p>Roadmap Title: {{ roadmap.title }}</p>
+        <p>Topics Count: {{ roadmap.topics|length }}</p>
+        {% if roadmap.topics|length == 0 %}
+        <p style="color: red;">No topics found in this roadmap!</p>
+        {% endif %}
+    </div>
+    
     <div class="roadmap-header">
         <h1 class="roadmap-title">{{ roadmap.title }}</h1>
         <p class="roadmap-description">{{ roadmap.description }}</p>
@@ -41,6 +52,7 @@
     </div>
     
     <div class="topics-container">
+        {% if roadmap.topics|length > 0 %}
         {% for topic in roadmap.topics %}
         <div class="topic-card {% if topic.name in roadmap.completed_topics %}completed{% endif %}">
             <div class="topic-header">
@@ -118,6 +130,18 @@
             </div>
         </div>
         {% endfor %}
+        {% else %}
+        <div class="empty-roadmap">
+            <div class="empty-icon">
+                <i class="fas fa-map-signs"></i>
+            </div>
+            <h3>No Topics Found</h3>
+            <p>This roadmap doesn't have any topics yet. This may be due to an error during roadmap generation.</p>
+            <a href="{{ url_for('roadmap_creator') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create a New Roadmap
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -224,6 +248,41 @@
         gap: 20px;
     }
     
+    /* Empty roadmap styles */
+    .empty-roadmap {
+        text-align: center;
+        padding: 60px 20px;
+        background-color: var(--bg-tertiary);
+        border-radius: var(--border-radius);
+    }
+    
+    .empty-icon {
+        font-size: 50px;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: var(--bg-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        color: var(--accent-primary);
+    }
+    
+    .empty-roadmap h3 {
+        margin-bottom: 15px;
+        font-size: 24px;
+    }
+    
+    .empty-roadmap p {
+        margin-bottom: 25px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        color: var(--text-secondary);
+    }
+    
+    /* Topic styles */
     .topic-card {
         background-color: var(--bg-tertiary);
         border-radius: var(--border-radius);

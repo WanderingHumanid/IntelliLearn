@@ -8,11 +8,12 @@ import datetime
 import uuid
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
-from models import db, User, Roadmap, ForumPost, ForumComment, StudyResource, PremiumFeature, ChatMessage, ForumReaction
+from models import db, User, Roadmap, ForumPost, ForumComment, PremiumFeature, ChatMessage, ForumReaction, UserReward
 from werkzeug.utils import secure_filename
 from ocr_utils import save_uploaded_file, extract_text_from_image, perform_tr_ocr, perform_tesseract_ocr
 import base64
 from PIL import Image
+import re
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -37,17 +38,13 @@ OLLAMA_API = "http://localhost:11434/api/generate"
 # Register custom filters
 @app.template_filter('timestamp_format')
 def timestamp_format(timestamp):
-    """Format a Unix timestamp into a readable date"""
-    if isinstance(timestamp, str):
-        try:
-            dt = datetime.datetime.fromisoformat(timestamp)
-            return dt.strftime('%b %d, %Y - %H:%M')
-        except ValueError:
-            return timestamp
-    elif isinstance(timestamp, (int, float)):
-        dt = datetime.datetime.fromtimestamp(timestamp)
-        return dt.strftime('%b %d, %Y - %H:%M')
-    return timestamp
+    if isinstance(timestamp, datetime.datetime):
+        return timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        date = datetime.datetime.fromtimestamp(timestamp)
+        return date.strftime('%Y-%m-%d %H:%M:%S')
+    except (TypeError, ValueError):
+        return str(timestamp)
 
 # Context processor to add user data to all templates
 @app.context_processor
@@ -86,8 +83,8 @@ def premium_required(f):
 @app.route('/')
 def index():
     if 'username' in session:
-        # If user is logged in, show dashboard button
-        return render_template('index.html', logged_in=True)
+        # If user is logged in, redirect to dashboard
+        return redirect(url_for('dashboard'))
     return render_template('index.html', logged_in=False)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -337,7 +334,7 @@ def api_chat():
         # Stream response from Ollama
         response = requests.post(
             OLLAMA_API,
-            json={"model": "llama3.2", "prompt": prompt, "stream": True},
+            json={"model": "mistral", "prompt": prompt, "stream": True},
             stream=True
         )
         
@@ -537,7 +534,7 @@ def upload_file():
         try:
             response = requests.post(
                 OLLAMA_API,
-                json={"model": "llama3.2", "prompt": prompt}
+                json={"model": "mistral", "prompt": prompt}
             )
             
             try:
@@ -649,129 +646,261 @@ def api_create_roadmap():
         if roadmap_count >= 3:
             return jsonify({"error": "You've reached the maximum number of roadmaps for free users. Upgrade to premium for unlimited roadmaps."}), 403
     
-    # Generate roadmap using Ollama
-    prompt = f"""Create a detailed learning roadmap for {topic}. 
-    The roadmap should be comprehensive and cover the subject in detail.
-    Each topic should have clear descriptions and specific resources.
-    Structure the roadmap as a JSON object with the following format:
+    # Generate roadmap using Mistral through Ollama with improved prompt engineering
+    prompt = f"""
+You are an expert educator and curriculum designer with years of experience creating learning roadmaps for students at all levels.
+
+TASK: Create a comprehensive, well-structured learning roadmap for: {topic}
+
+KEY REQUIREMENTS:
+1. The roadmap must be logically sequenced from beginner to advanced
+2. Each topic must include clear descriptions and specific actionable resources
+3. Topics should build upon previous topics in a logical progression
+4. Include estimated time to complete each section
+5. Structure must be hierarchical with main topics and related subtopics
+6. Resources should be specific and diverse (books, courses, websites, practice exercises)
+
+AUDIENCE:
+A motivated adult learner starting from basic understanding and wanting to achieve proficiency.
+
+RESPONSE FORMAT:
+Return ONLY valid JSON that matches this exact schema:
+{{
+  "title": "{topic} Learning Roadmap",
+  "description": "A comprehensive roadmap to master {topic} from beginner to advanced level.",
+  "topics": [
     {{
-      "title": "{topic} Learning Path",
-      "description": "A comprehensive roadmap to master {topic}",
-      "topics": [
+      "name": "Topic Name",
+      "description": "Detailed description explaining what this topic covers and why it's important",
+      "estimated_hours": 10,
+      "resources": [
+        "Resource 1: Specific book, course, or website with title/name",
+        "Resource 2: Another specific learning resource"
+      ],
+      "subtopics": [
         {{
-          "name": "Topic 1",
-          "description": "Detailed description of the topic",
-          "resources": ["Resource 1", "Resource 2"],
-          "estimated_hours": 5,
-          "subtopics": [
-            {{
-              "name": "Subtopic 1.1",
-              "description": "Description of the subtopic",
-              "resources": ["Resource 1", "Resource 2"],
-              "estimated_hours": 2
-            }}
+          "name": "Subtopic Name",
+          "description": "Detailed description of what this subtopic covers",
+          "estimated_hours": 3,
+          "resources": [
+            "Resource 1: Specific book, course, or website with title/name", 
+            "Resource 2: Another specific learning resource"
           ]
         }}
       ]
     }}
+  ]
+}}
+
+CONSTRAINTS:
+- Include at least 5-7 main topics, each with 2-4 subtopics
+- Main topics should be fundamental categories/areas within {topic}
+- Subtopics should be specific skills, concepts, or techniques within each main topic
+- Each description should be 2-3 sentences, detailed and informative
+- For resources, include specific titles and sources (not just "online course" but "Course: Introduction to {topic} on Coursera")
+- Estimate realistic time investments for each section (in hours)
+- The JSON MUST be valid and properly formatted
+
+DO NOT include any explanation or markdown formatting outside the JSON structure.
+"""
     
-    Make sure all JSON is properly formatted and can be parsed correctly.
-    Include a minimum of 5 main topics, each with at least 2 subtopics.
-    For each topic and subtopic, provide detailed descriptions and relevant learning resources.
-    """
+    app.logger.info(f"Generating roadmap for topic: {topic}")
     
     try:
         response = requests.post(
             OLLAMA_API,
-            json={"model": "llama3.2", "prompt": prompt}
+            json={
+                "model": "mistral",
+                "prompt": prompt,
+                "stream": False,
+                "temperature": 0.7, # Balanced between creativity and structure
+                "top_p": 0.9       # Slightly more focused sampling for coherent topics
+            }
         )
+        
+        if response.status_code != 200:
+            app.logger.error(f"Error generating roadmap. Status code: {response.status_code}")
+            return jsonify({'error': f'Error generating roadmap. Status code: {response.status_code}'}), 500
         
         result = response.json()
         roadmap_text = result.get('response', '')
         
-        # Extract JSON from the response
-        import re
+        app.logger.info(f"Received response length: {len(roadmap_text)} characters")
+        app.logger.debug(f"Raw response sample: {roadmap_text[:200]}...")
         
-        # First try to extract from code blocks
-        json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
-        matches = re.findall(json_pattern, roadmap_text)
-        
-        roadmap_json = None
-        
-        # Try each match until we find valid JSON
-        for match_text in matches:
-            try:
-                # Clean up the text
-                cleaned_text = match_text.strip()
-                roadmap_json = json.loads(cleaned_text)
-                break  # Found valid JSON, exit loop
-            except json.JSONDecodeError:
-                continue  # Try the next match
-        
-        # If code block extraction failed, try to find JSON directly
-        if not roadmap_json:
-            # Find the outermost JSON object
-            json_start = roadmap_text.find('{')
-            if json_start != -1:
-                open_braces = 0
-                for i in range(json_start, len(roadmap_text)):
-                    if roadmap_text[i] == '{':
-                        open_braces += 1
-                    elif roadmap_text[i] == '}':
-                        open_braces -= 1
-                        if open_braces == 0:  # Found the end of the JSON object
-                            json_end = i + 1
-                            try:
-                                json_text = roadmap_text[json_start:json_end]
-                                # Remove any control characters or non-ASCII characters
-                                json_text = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', json_text)
-                                roadmap_json = json.loads(json_text)
-                                break
-                            except json.JSONDecodeError:
-                                pass  # Continue searching
-        
-        # If all else fails, try a more aggressive approach
-        if not roadmap_json:
-            # Remove all newlines and extra spaces
-            cleaned_text = re.sub(r'\s+', ' ', roadmap_text)
-            # Find JSON-like structures
-            json_pattern = r'{.*}'
-            match = re.search(json_pattern, cleaned_text)
-            if match:
+        # Extract JSON from the response with enhanced error handling
+        try:
+            # First try to extract from code blocks
+            json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+            matches = re.findall(json_pattern, roadmap_text)
+            
+            app.logger.info(f"Found {len(matches)} potential JSON code blocks")
+            
+            roadmap_json = None
+            parsing_errors = []
+            
+            # Try each match until we find valid JSON
+            for i, match_text in enumerate(matches):
                 try:
-                    roadmap_json = json.loads(match.group(0))
-                except json.JSONDecodeError:
-                    pass
-        
-        # If we still don't have valid JSON, return error
-        if not roadmap_json:
-            return jsonify({"error": "Failed to parse roadmap from AI response. Please try again with a different topic."}), 500
-        
-        # Ensure roadmap has the required structure
-        if "topics" not in roadmap_json:
-            roadmap_json["topics"] = []
-        
-        # Ensure each topic has all required fields
-        for topic in roadmap_json.get("topics", []):
-            if "estimated_hours" not in topic:
-                topic["estimated_hours"] = 5
-            if "resources" not in topic:
-                topic["resources"] = []
-            if "subtopics" not in topic:
-                topic["subtopics"] = []
-        
-        # Add roadmap to database
-        new_roadmap = Roadmap(
-            title=roadmap_json.get('title', f"{topic} Learning Path"),
-            description=roadmap_json.get('description', f"A learning roadmap for {topic}"),
-            content=json.dumps(roadmap_json),
-            creator_id=user.id
-        )
-        
-        db.session.add(new_roadmap)
-        db.session.commit()
-        
-        return jsonify({"roadmap": new_roadmap.to_dict()})
+                    # Clean up the text
+                    cleaned_text = match_text.strip()
+                    app.logger.debug(f"Trying code block {i+1}, length: {len(cleaned_text)} chars")
+                    roadmap_json = json.loads(cleaned_text)
+                    app.logger.info(f"Successfully parsed JSON from code block {i+1}")
+                    break  # Found valid JSON, exit loop
+                except json.JSONDecodeError as e:
+                    parsing_errors.append(f"JSON parse error in code block {i+1}: {str(e)}")
+                    app.logger.warning(f"Failed to parse code block {i+1}: {str(e)}")
+                    continue  # Try the next match
+            
+            # If code block extraction failed, try to find JSON directly
+            if not roadmap_json:
+                app.logger.info("No valid JSON found in code blocks, trying direct extraction")
+                # Find the outermost JSON object
+                json_start = roadmap_text.find('{')
+                if json_start != -1:
+                    app.logger.debug(f"Found JSON start at position {json_start}")
+                    open_braces = 0
+                    for i in range(json_start, len(roadmap_text)):
+                        if roadmap_text[i] == '{':
+                            open_braces += 1
+                        elif roadmap_text[i] == '}':
+                            open_braces -= 1
+                            if open_braces == 0:  # Found the end of the JSON object
+                                json_end = i + 1
+                                try:
+                                    json_text = roadmap_text[json_start:json_end]
+                                    app.logger.debug(f"Extracted JSON text length: {len(json_text)}")
+                                    # Remove any control characters or non-ASCII characters
+                                    json_text = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', json_text)
+                                    # Fix common issues with escaped quotes
+                                    json_text = json_text.replace('\\"', '"').replace('\\\\', '\\')
+                                    roadmap_json = json.loads(json_text)
+                                    app.logger.info("Successfully parsed JSON from direct extraction")
+                                    break
+                                except json.JSONDecodeError as e:
+                                    parsing_errors.append(f"JSON parse error in direct extraction: {str(e)}")
+                                    app.logger.warning(f"Failed to parse direct JSON extraction: {str(e)}")
+                                    pass  # Continue searching
+            
+            # If all else fails, try a more aggressive approach
+            if not roadmap_json:
+                app.logger.info("Trying aggressive JSON extraction methods")
+                try:
+                    # Handle possible linebreaks and formatting issues
+                    fixed_text = roadmap_text.replace('\n', ' ').replace('\r', '')
+                    # Look for anything that might be a JSON object
+                    matches = re.findall(r'{.*?}', fixed_text, re.DOTALL)
+                    # Try larger matches first
+                    matches.sort(key=len, reverse=True)
+                    
+                    app.logger.info(f"Found {len(matches)} potential JSON objects")
+                    
+                    for i, match in enumerate(matches):
+                        try:
+                            app.logger.debug(f"Trying match {i+1}, length: {len(match)} chars")
+                            roadmap_json = json.loads(match)
+                            if roadmap_json and isinstance(roadmap_json, dict) and 'topics' in roadmap_json:
+                                app.logger.info(f"Successfully parsed JSON from match {i+1}")
+                                break  # Found valid roadmap JSON
+                        except Exception as e:
+                            app.logger.debug(f"Failed to parse match {i+1}: {str(e)}")
+                            continue
+                
+                except Exception as e:
+                    parsing_errors.append(f"Error in aggressive JSON parsing: {str(e)}")
+                    app.logger.error(f"Error in aggressive JSON parsing: {str(e)}")
+            
+            # If we still don't have valid JSON, return detailed error
+            if not roadmap_json:
+                app.logger.error(f"Failed to parse roadmap. Raw response: {roadmap_text[:500]}")
+                app.logger.error(f"Parsing errors: {parsing_errors}")
+                return jsonify({
+                    "error": "Failed to parse roadmap from AI response. Please try again with a different topic.",
+                    "details": "The AI generated content that couldn't be parsed as valid JSON."
+                }), 500
+            
+            # Ensure roadmap has the required structure and fix any missing fields
+            app.logger.info("Validating and fixing roadmap structure")
+            if "topics" not in roadmap_json or not isinstance(roadmap_json["topics"], list):
+                app.logger.warning("No topics found in roadmap JSON or topics is not a list")
+                roadmap_json["topics"] = []
+            
+            app.logger.info(f"Roadmap has {len(roadmap_json.get('topics', []))} topics")
+            
+            def validate_and_fix_roadmap(roadmap_data):
+                # Ensure basic structure exists
+                if "title" not in roadmap_data:
+                    roadmap_data["title"] = f"{topic} Learning Roadmap"
+                
+                if "description" not in roadmap_data:
+                    roadmap_data["description"] = f"A comprehensive roadmap to master {topic} from beginner to advanced level."
+                
+                if "topics" not in roadmap_data:
+                    roadmap_data["topics"] = []
+                
+                # Validate each topic
+                for topic_item in roadmap_data.get("topics", []):
+                    if "estimated_hours" not in topic_item:
+                        topic_item["estimated_hours"] = 5
+                    elif not isinstance(topic_item["estimated_hours"], (int, float)):
+                        try:
+                            topic_item["estimated_hours"] = float(topic_item["estimated_hours"])
+                        except:
+                            topic_item["estimated_hours"] = 5
+                    
+                    if "resources" not in topic_item:
+                        topic_item["resources"] = []
+                    
+                    if "subtopics" not in topic_item:
+                        topic_item["subtopics"] = []
+                    
+                    # Validate each subtopic
+                    for subtopic in topic_item.get("subtopics", []):
+                        if "estimated_hours" not in subtopic:
+                            subtopic["estimated_hours"] = 2
+                        elif not isinstance(subtopic["estimated_hours"], (int, float)):
+                            try:
+                                subtopic["estimated_hours"] = float(subtopic["estimated_hours"])
+                            except:
+                                subtopic["estimated_hours"] = 2
+                        
+                        if "resources" not in subtopic:
+                            subtopic["resources"] = []
+                
+                return roadmap_data
+            
+            # Validate and fix any issues with the roadmap structure
+            roadmap_json = validate_and_fix_roadmap(roadmap_json)
+            
+            # Add roadmap to database
+            new_roadmap = Roadmap(
+                title=roadmap_json.get('title', f"{topic} Learning Roadmap"),
+                description=roadmap_json.get('description', f"A learning roadmap for {topic}"),
+                content=json.dumps(roadmap_json),
+                creator_id=user.id
+            )
+            
+            db.session.add(new_roadmap)
+            
+            # Add points for creating a roadmap
+            user.points += 5
+            
+            # Level up if points threshold reached
+            if user.points >= user.level * 100:
+                user.level += 1
+            
+            db.session.commit()
+            
+            # Return the roadmap data for the frontend
+            return jsonify({"roadmap": new_roadmap.to_dict()})
+            
+        except Exception as e:
+            app.logger.error(f"Error parsing roadmap JSON: {str(e)}")
+            return jsonify({
+                "error": "Failed to process the roadmap data.",
+                "details": str(e)
+            }), 500
     
     except Exception as e:
         app.logger.error(f"Error creating roadmap: {str(e)}")
@@ -781,14 +910,41 @@ def api_create_roadmap():
 @login_required
 def view_roadmap(roadmap_id):
     roadmap = Roadmap.query.get_or_404(roadmap_id)
-    return render_template('roadmap_view.html', roadmap=roadmap.to_dict())
+    roadmap_dict = roadmap.to_dict()
+    
+    # Debug the roadmap data
+    app.logger.info(f"Roadmap title: {roadmap_dict.get('title')}")
+    app.logger.info(f"Topics count: {len(roadmap_dict.get('topics', []))}")
+    app.logger.info(f"Topics: {roadmap_dict.get('topics')}")
+    
+    return render_template('roadmap_view.html', roadmap=roadmap_dict)
 
 @app.route('/profile')
 @login_required
 def profile():
     username = session['username']
     user = User.query.filter_by(username=username).first()
-    return render_template('profile.html', user=user)
+    
+    # Get user's rewards
+    unlocked_rewards = user.get_rewards()
+    next_level_rewards = user.get_next_rewards()
+    all_rewards = user.get_all_rewards()
+    
+    # Calculate progress to next level
+    current_level_points = (user.level - 1) * 100
+    next_level_points = user.level * 100
+    level_progress = ((user.points - current_level_points) / 100) * 100  # As percentage
+    
+    # Get any notifications from session
+    notifications = session.pop('notifications', [])
+    
+    return render_template('profile.html', 
+                          user=user,
+                          unlocked_rewards=unlocked_rewards,
+                          next_level_rewards=next_level_rewards,
+                          all_rewards=all_rewards,
+                          level_progress=level_progress,
+                          notifications=notifications)
 
 @app.route('/update-profile', methods=['POST'])
 @login_required
@@ -858,10 +1014,39 @@ def api_complete_topic():
 
 @app.route('/forum')
 def forum():
-    # Get posts from database, ordered by creation time (newest first)
-    # Use distinct() to ensure no duplicate posts are returned
-    posts = ForumPost.query.distinct(ForumPost.id).order_by(ForumPost.created_at.desc()).all()
+    # Get query parameters
+    search_query = request.args.get('search', '').strip()
+    filter_topic = request.args.get('topic', '').strip()
+    sort_by = request.args.get('sort', 'recent')  # 'recent', 'popular', 'likes'
+    
+    # Start with base query
+    query = ForumPost.query.distinct(ForumPost.id)
+    
+    # Apply search filter if provided
+    if search_query:
+        query = query.filter(ForumPost.title.ilike(f'%{search_query}%') | 
+                             ForumPost.content.ilike(f'%{search_query}%'))
+    
+    # Apply topic filter if provided
+    if filter_topic:
+        query = query.filter(ForumPost.topic == filter_topic)
+    
+    # Apply sorting
+    if sort_by == 'recent':
+        query = query.order_by(ForumPost.created_at.desc())
+    elif sort_by == 'popular':
+        query = query.order_by(db.func.count(ForumComment.id).desc(), ForumPost.created_at.desc())
+        query = query.outerjoin(ForumComment).group_by(ForumPost.id)
+    elif sort_by == 'likes':
+        query = query.order_by(ForumPost.likes.desc(), ForumPost.created_at.desc())
+    
+    # Execute query
+    posts = query.all()
     post_dicts = []
+    
+    # Get list of unique topics for filter dropdown
+    all_topics = db.session.query(ForumPost.topic).distinct().filter(ForumPost.topic != None, ForumPost.topic != '').all()
+    topics = [topic[0] for topic in all_topics]
     
     # Get current user if logged in
     current_user_id = None
@@ -901,7 +1086,12 @@ def forum():
         
         post_dicts.append(post_dict)
     
-    return render_template('forum.html', posts=post_dicts)
+    return render_template('forum.html', 
+                          posts=post_dicts, 
+                          topics=topics, 
+                          current_topic=filter_topic,
+                          current_search=search_query,
+                          current_sort=sort_by)
 
 @app.route('/api/forum-post', methods=['POST'])
 @login_required
@@ -909,6 +1099,7 @@ def api_forum_post():
     username = session['username']
     title = ''
     content = ''
+    topic = ''
     has_image = False
     image_path = None
     
@@ -916,6 +1107,7 @@ def api_forum_post():
     if request.content_type and 'multipart/form-data' in request.content_type:
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
+        topic = request.form.get('topic', '').strip()
         image = request.files.get('image')
         
         if image and image.filename and allowed_file(image.filename, {'png', 'jpg', 'jpeg', 'gif'}):
@@ -945,6 +1137,7 @@ def api_forum_post():
         # Handle JSON data
         title = request.json.get('title', '').strip()
         content = request.json.get('content', '').strip()
+        topic = request.json.get('topic', '').strip()
     
     if not title or not content:
         return jsonify({"error": "Title and content are required"}), 400
@@ -954,6 +1147,7 @@ def api_forum_post():
     new_post = ForumPost(
         title=title,
         content=content,
+        topic=topic,
         author_id=user.id,
         has_image=has_image,
         image_path=image_path
@@ -1183,7 +1377,8 @@ def generate_quiz_api():
             - DO NOT include answer explanations in the JSON
             - DO NOT include any markdown, text, or other content outside the JSON object
             - DO NOT use nested quotes that would break the JSON structure
-            - The JSON MUST be valid and properly formatted
+            - The JSON MUST be valid and properly formatted without any trailing commas
+            - Make sure to properly escape any quotes within the text
             """
         else:
             prompt = f"""
@@ -1215,7 +1410,8 @@ def generate_quiz_api():
             - Answers should be concise but complete
             - DO NOT include any markdown, text, or other content outside the JSON object
             - DO NOT use nested quotes that would break the JSON structure 
-            - The JSON MUST be valid and properly formatted
+            - The JSON MUST be valid and properly formatted without any trailing commas
+            - Make sure to properly escape any quotes within the text
             """
         
         # Call Ollama API to generate quiz
@@ -1224,7 +1420,8 @@ def generate_quiz_api():
             json={
                 "model": "mistral",
                 "prompt": prompt,
-                "stream": False
+                "stream": False,
+                "temperature": 0.3  # Lower temperature for more predictable JSON formatting
             }
         )
         
@@ -1234,64 +1431,161 @@ def generate_quiz_api():
         result = response.json()
         response_text = result.get('response', '')
         
+        app.logger.info(f"Raw quiz response length: {len(response_text)} chars")
+        app.logger.debug(f"Quiz response preview: {response_text[:200]}...")
+        
         # Extract JSON from response
         try:
-            # Try to find JSON content in the response
+            # Try multiple approaches to extract valid JSON
+            quiz_data = None
+            parsing_errors = []
+            
+            # Approach 1: Try to find JSON content directly
             json_start = response_text.find('{')
             json_end = response_text.rfind('}') + 1
             
             if json_start >= 0 and json_end > json_start:
                 json_content = response_text[json_start:json_end]
                 try:
+                    app.logger.debug(f"Trying direct JSON parsing: {json_content[:100]}...")
                     quiz_data = json.loads(json_content)
-                except json.JSONDecodeError:
-                    # Try cleaning the JSON content - sometimes there are issues with escaped quotes
-                    cleaned_json = json_content.replace('\\"', '"').replace('\\\\', '\\')
+                    app.logger.info("Successfully parsed JSON directly")
+                except json.JSONDecodeError as e:
+                    parsing_errors.append(f"Direct JSON parse error: {str(e)}")
+                    app.logger.warning(f"Direct JSON parsing failed: {str(e)}")
+                    
+                    # Try cleaning the JSON content
                     try:
+                        # Remove special characters and fix common issues
+                        cleaned_json = json_content.replace('\\"', '"').replace('\\\\', '\\')
+                        # Remove potential unescaped line breaks and tabs
+                        cleaned_json = re.sub(r'(?<!\\)\\n', ' ', cleaned_json)
+                        cleaned_json = re.sub(r'(?<!\\)\\t', ' ', cleaned_json)
+                        app.logger.debug(f"Trying cleaned JSON: {cleaned_json[:100]}...")
                         quiz_data = json.loads(cleaned_json)
-                    except json.JSONDecodeError:
-                        # If still failing, try removing potential markdown backticks
-                        if json_content.startswith('```json'):
-                            json_content = json_content[7:]
-                        if json_content.endswith('```'):
-                            json_content = json_content[:-3]
-                        quiz_data = json.loads(json_content.strip())
-            else:
-                # In case the response doesn't have curly braces but is a valid JSON
-                try:
-                    quiz_data = json.loads(response_text)
-                except json.JSONDecodeError:
-                    # Last attempt - try to find content between markdown code blocks
-                    if '```json' in response_text and '```' in response_text[response_text.find('```json')+7:]:
-                        code_start = response_text.find('```json') + 7
-                        code_end = response_text.find('```', code_start)
-                        if code_end > code_start:
-                            json_content = response_text[code_start:code_end].strip()
+                        app.logger.info("Successfully parsed cleaned JSON")
+                    except json.JSONDecodeError as e2:
+                        parsing_errors.append(f"Cleaned JSON parse error: {str(e2)}")
+                        app.logger.warning(f"Cleaned JSON parsing failed: {str(e2)}")
+                        
+                        # Try removing markdown backticks if present
+                        try:
+                            if json_content.startswith('```json'):
+                                json_content = json_content[7:]
+                            if json_content.endswith('```'):
+                                json_content = json_content[:-3]
+                            json_content = json_content.strip()
+                            app.logger.debug(f"Trying markdown-cleaned JSON: {json_content[:100]}...")
                             quiz_data = json.loads(json_content)
-                    else:
-                        raise json.JSONDecodeError("Could not parse JSON from response", response_text, 0)
+                            app.logger.info("Successfully parsed markdown-cleaned JSON")
+                        except json.JSONDecodeError as e3:
+                            parsing_errors.append(f"Markdown-cleaned JSON parse error: {str(e3)}")
+                            app.logger.warning(f"Markdown-cleaned JSON parsing failed: {str(e3)}")
+            
+            # Approach 2: Try the raw response as JSON
+            if not quiz_data:
+                try:
+                    app.logger.debug("Trying raw response as JSON")
+                    quiz_data = json.loads(response_text)
+                    app.logger.info("Successfully parsed raw response as JSON")
+                except json.JSONDecodeError as e:
+                    parsing_errors.append(f"Raw response parse error: {str(e)}")
+                    app.logger.warning(f"Raw response parsing failed: {str(e)}")
+            
+            # Approach 3: Look for code blocks
+            if not quiz_data:
+                json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+                matches = re.findall(json_pattern, response_text)
+                app.logger.info(f"Found {len(matches)} potential JSON code blocks")
+                
+                for i, match_text in enumerate(matches):
+                    try:
+                        match_text = match_text.strip()
+                        app.logger.debug(f"Trying code block {i+1}: {match_text[:100]}...")
+                        quiz_data = json.loads(match_text)
+                        app.logger.info(f"Successfully parsed JSON from code block {i+1}")
+                        break
+                    except json.JSONDecodeError as e:
+                        parsing_errors.append(f"Code block {i+1} parse error: {str(e)}")
+                        app.logger.warning(f"Code block {i+1} parsing failed: {str(e)}")
+            
+            # Approach 4: Try to fix common JSON syntax errors and parse again
+            if not quiz_data:
+                try:
+                    app.logger.info("Attempting advanced JSON fixing")
+                    # Find what looks like a JSON object 
+                    potential_json = re.search(r'\{[\s\S]*\}', response_text)
+                    if potential_json:
+                        # Get the matched JSON-like content
+                        json_str = potential_json.group(0)
+                        
+                        # Fix common JSON errors
+                        # 1. Remove trailing commas before closing brackets
+                        json_str = re.sub(r',\s*(\]|\})', r'\1', json_str)
+                        # 2. Ensure property names are double-quoted
+                        json_str = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', json_str)
+                        # 3. Replace single quotes with double quotes (but not within already double-quoted strings)
+                        # This is complex, so skip it for simplicity
+                        
+                        app.logger.debug(f"Fixed JSON: {json_str[:100]}...")
+                        quiz_data = json.loads(json_str)
+                        app.logger.info("Successfully parsed fixed JSON")
+                except Exception as e:
+                    parsing_errors.append(f"Advanced fixing error: {str(e)}")
+                    app.logger.warning(f"Advanced JSON fixing failed: {str(e)}")
+            
+            # If we still don't have valid JSON, return detailed error
+            if not quiz_data:
+                app.logger.error(f"All JSON parsing attempts failed. Errors: {parsing_errors}")
+                formatted_errors = "\\n".join(parsing_errors)
+                return jsonify({
+                    'error': f'Failed to parse quiz data: {formatted_errors}',
+                    'details': 'Try rephrasing your topic or selecting a different quiz type.',
+                    'raw_response': response_text[:300] + ('...' if len(response_text) > 300 else '')
+                })
             
             # Validate quiz data format
             if not isinstance(quiz_data, dict) or 'questions' not in quiz_data:
+                app.logger.warning("Invalid quiz format: missing 'questions' field")
                 return jsonify({'error': 'Invalid quiz format: missing "questions" field'})
             
             if not isinstance(quiz_data['questions'], list) or len(quiz_data['questions']) == 0:
+                app.logger.warning("Invalid quiz format: 'questions' must be a non-empty array")
                 return jsonify({'error': 'Invalid quiz format: "questions" must be a non-empty array'})
             
             # Validate expected structure for individual questions based on quiz type
             if quiz_type == 'mcq':
                 for i, question in enumerate(quiz_data['questions']):
                     if 'question' not in question or 'options' not in question or 'correct_index' not in question:
+                        app.logger.warning(f"Invalid question format at index {i}: missing required fields")
                         return jsonify({'error': f'Invalid question format at index {i}: missing required fields'})
                     
                     if not isinstance(question['options'], list) or len(question['options']) != 4:
-                        return jsonify({'error': f'Invalid question format at index {i}: must have exactly 4 options'})
+                        app.logger.warning(f"Invalid question format at index {i}: must have exactly 4 options")
+                        # Fix by padding with empty options if needed
+                        if isinstance(question['options'], list) and len(question['options']) < 4:
+                            original_length = len(question['options'])
+                            for _ in range(4 - original_length):
+                                question['options'].append(f"Option {chr(65 + original_length + _)}")
+                            app.logger.info(f"Fixed question at index {i} by padding options")
                     
-                    if not isinstance(question['correct_index'], int) or question['correct_index'] < 0 or question['correct_index'] > 3:
-                        return jsonify({'error': f'Invalid question format at index {i}: correct_index must be between 0 and 3'})
+                    # Ensure correct_index is an integer
+                    if not isinstance(question['correct_index'], int):
+                        try:
+                            question['correct_index'] = int(question['correct_index'])
+                            app.logger.info(f"Converted correct_index to int at index {i}")
+                        except (ValueError, TypeError):
+                            app.logger.warning(f"Invalid correct_index at index {i}, defaulting to 0")
+                            question['correct_index'] = 0
+                    
+                    # Ensure correct_index is within bounds
+                    if question['correct_index'] < 0 or question['correct_index'] > 3:
+                        app.logger.warning(f"Out of bounds correct_index at index {i}, clamping to valid range")
+                        question['correct_index'] = max(0, min(question['correct_index'], 3))
             else:  # direct answer questions
                 for i, question in enumerate(quiz_data['questions']):
                     if 'question' not in question or 'answer' not in question:
+                        app.logger.warning(f"Invalid question format at index {i}: missing required fields")
                         return jsonify({'error': f'Invalid question format at index {i}: missing required fields'})
             
             # Log generated quiz
@@ -1307,16 +1601,18 @@ def generate_quiz_api():
                 
             db.session.commit()
             
+            app.logger.info(f"Quiz successfully generated with {len(quiz_data['questions'])} questions")
             return jsonify({'quiz': quiz_data})
         except json.JSONDecodeError as e:
             # Return detailed error for JSON parsing failures
+            app.logger.error(f"JSON decode error: {str(e)}")
             return jsonify({
-                'error': 'Failed to parse quiz data',
-                'details': str(e),
-                'raw_response': response_text[:500] + ('...' if len(response_text) > 500 else '')
+                'error': f'Failed to parse quiz data: {str(e)}',
+                'details': 'Try rephrasing your topic or selecting a different quiz type.',
+                'raw_response': response_text[:300] + ('...' if len(response_text) > 300 else '')
             })
     except Exception as e:
-        print(f"Error generating quiz: {str(e)}")
+        app.logger.error(f"Error generating quiz: {str(e)}")
         return jsonify({'error': f'An error occurred while generating the quiz: {str(e)}'})
 
 @app.route('/api/evaluate-quiz', methods=['POST'])
@@ -1363,6 +1659,9 @@ def evaluate_quiz_api():
             username = session['username']
             user = User.query.filter_by(username=username).first()
             
+            # Store old level for comparison
+            old_level = user.level
+            
             # Add bonus points based on score 
             bonus_points = max(1, int(percent / 20))  # 1-5 points based on score
             user.points += 5 + bonus_points
@@ -1370,6 +1669,9 @@ def evaluate_quiz_api():
             # Level up if points threshold reached
             if user.points >= user.level * 100:
                 user.level += 1
+                
+                # Handle level up notification
+                handle_level_up(user, old_level)
                 
             db.session.commit()
             
@@ -1475,19 +1777,19 @@ def evaluate_quiz_api():
                             if json_content.endswith('```'):
                                 json_content = json_content[:-3]
                             eval_data = json.loads(json_content.strip())
-                else:
-                    try:
-                        eval_data = json.loads(response_text)
-                    except json.JSONDecodeError:
-                        # Last attempt - try to find content between markdown code blocks
-                        if '```json' in response_text and '```' in response_text[response_text.find('```json')+7:]:
-                            code_start = response_text.find('```json') + 7
-                            code_end = response_text.find('```', code_start)
-                            if code_end > code_start:
-                                json_content = response_text[code_start:code_end].strip()
-                                eval_data = json.loads(json_content)
-                        else:
-                            raise json.JSONDecodeError("Could not parse JSON from response", response_text, 0)
+                    else:
+                        try:
+                            eval_data = json.loads(response_text)
+                        except json.JSONDecodeError:
+                            # Last attempt - try to find content between markdown code blocks
+                            if '```json' in response_text and '```' in response_text[response_text.find('```json')+7:]:
+                                code_start = response_text.find('```json') + 7
+                                code_end = response_text.find('```', code_start)
+                                if code_end > code_start:
+                                    json_content = response_text[code_start:code_end].strip()
+                                    eval_data = json.loads(json_content)
+                            else:
+                                raise json.JSONDecodeError("Could not parse JSON from response", response_text, 0)
                 
                 # Validate evaluation data format
                 if not isinstance(eval_data, dict):
@@ -1640,50 +1942,28 @@ def get_score_feedback(percent):
 def update_user_points(user_id, points_to_add):
     """Update user points and handle level progression"""
     try:
-        # Get current user data
-        user = db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        # Get user from database
+        user = User.query.get(user_id)
         if not user:
             return False
             
+        # Store old level for comparison
+        old_level = user.level
+        
         # Update points
-        new_points = user['points'] + points_to_add
+        user.points += points_to_add
         
         # Check for level up
-        current_level = user['level']
-        points_for_next_level = current_level * 100
-        
-        if new_points >= points_for_next_level:
-            # Level up
-            new_level = current_level + 1
-            db.execute(
-                """
-                UPDATE users 
-                SET points = ?, level = ? 
-                WHERE id = ?
-                """, 
-                (new_points, new_level, user_id)
-            )
+        while user.points >= user.level * 100:
+            user.level += 1
             
-            # Log level up activity
-            db.execute(
-                """
-                INSERT INTO user_activities (user_id, activity_type, description, points)
-                VALUES (?, ?, ?, ?)
-                """,
-                (user_id, 'level_up', f'Advanced to level {new_level}', 0)
-            )
-        else:
-            # Just update points
-            db.execute(
-                """
-                UPDATE users 
-                SET points = ? 
-                WHERE id = ?
-                """, 
-                (new_points, user_id)
-            )
+            # Add activity for level up
+            db.session.flush()  # Flush to get the updated level value
         
-        db.commit()
+        # Handle level up notification
+        handle_level_up(user, old_level)
+        
+        db.session.commit()
         return True
         
     except Exception as e:
@@ -1691,7 +1971,7 @@ def update_user_points(user_id, points_to_add):
         return False
 
 # Create study resources page
-@app.route('/study-resources')
+# @app.route('/study-resources')
 @login_required
 def study_resources():
     # Get filter parameters from query string
@@ -1771,7 +2051,7 @@ def study_resources():
                           selected_type=resource_type,
                           selected_subject=subject)
 
-@app.route('/add-study-resource', methods=['GET', 'POST'])
+# @app.route('/add-study-resource', methods=['GET', 'POST'])
 @login_required
 def add_study_resource():
     if request.method == 'POST':
@@ -1789,11 +2069,18 @@ def add_study_resource():
         # Award points for adding a resource
         username = session['username']
         user = User.query.filter_by(username=username).first()
+        
+        # Store old level for comparison
+        old_level = user.level
+        
         user.points += 8
         
         # Level up if points threshold reached
         if user.points >= user.level * 100:
             user.level += 1
+            
+            # Handle level up notification
+            handle_level_up(user, old_level)
             
         db.session.commit()
         
@@ -2022,7 +2309,183 @@ def api_forum_reaction():
             "post": post.to_dict()
         })
 
+@app.route('/api/get-topic-details', methods=['GET'])
+@login_required
+def get_topic_details():
+    """API endpoint to get detailed information about a specific topic or subtopic."""
+    topic_name = request.args.get('topic')
+    if not topic_name:
+        return jsonify({"error": "Topic name is required"}), 400
+    
+    try:
+        # Query Mistral for detailed information about the topic
+        prompt = f"""
+You are an educational expert. Provide detailed information about the topic: "{topic_name}".
+
+Please include:
+1. A clear, detailed explanation of what this topic covers
+2. Why it's important to learn
+3. Key concepts within this topic
+4. How it relates to the broader subject area
+5. Common applications or use cases
+
+Keep your response under 500 words, well-structured, and focused on being educational.
+"""
+        
+        response = requests.post(
+            OLLAMA_API,
+            json={
+                "model": "mistral",
+                "prompt": prompt,
+                "stream": False
+            }
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'error': f'Error fetching topic details. Status code: {response.status_code}'}), 500
+        
+        result = response.json()
+        details = result.get('response', '')
+        
+        return jsonify({
+            "topic": topic_name,
+            "details": details
+        })
+    
+    except Exception as e:
+        app.logger.error(f"Error fetching topic details: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# Initialize default rewards for the gamification system
+def initialize_rewards():
+    """Initialize the default rewards for the gamification system if they don't exist"""
+    # Check if rewards already exist
+    if UserReward.query.count() > 0:
+        return
+    
+    # Define default rewards for levels 1-10
+    default_rewards = [
+        # Level 1
+        {
+            'level': 1,
+            'name': 'Welcome Badge',
+            'description': 'Earned for joining IntelliLearn. Welcome to the community!',
+            'reward_type': 'badge',
+            'icon': 'medal'
+        },
+        # Level 2
+        {
+            'level': 2,
+            'name': 'Quiz Master',
+            'description': 'Unlocked access to advanced quiz generation with custom difficulty levels.',
+            'reward_type': 'feature',
+            'icon': 'question-circle'
+        },
+        # Level 3
+        {
+            'level': 3,
+            'name': 'Study Session',
+            'description': 'Unlock extended AI chat sessions for more in-depth learning assistance.',
+            'reward_type': 'feature',
+            'icon': 'comment-dots'
+        },
+        # Level 4
+        {
+            'level': 4,
+            'name': 'Roadmap Explorer',
+            'description': 'Unlock the ability to create more detailed learning roadmaps with advanced customization.',
+            'reward_type': 'feature',
+            'icon': 'map-marked-alt'
+        },
+        # Level 5
+        {
+            'level': 5,
+            'name': 'Weekend Premium Pass',
+            'description': 'Enjoy premium features every weekend, free of charge!',
+            'reward_type': 'premium',
+            'icon': 'crown'
+        },
+        # Level 6
+        {
+            'level': 6,
+            'name': 'OCR Pro',
+            'description': 'Enhanced OCR capabilities for extracting text from images more accurately.',
+            'reward_type': 'feature',
+            'icon': 'file-image'
+        },
+        # Level 7
+        {
+            'level': 7,
+            'name': 'Community Moderator',
+            'description': 'Special forum badge and ability to pin important community discussions.',
+            'reward_type': 'role',
+            'icon': 'users-cog'
+        },
+        # Level 8
+        {
+            'level': 8,
+            'name': 'Premium Trial',
+            'description': 'Free 7-day trial of all premium features, renewable once per month.',
+            'reward_type': 'premium',
+            'icon': 'gem'
+        },
+        # Level 9
+        {
+            'level': 9,
+            'name': 'Knowledge Guardian',
+            'description': 'Exclusive profile badge and ability to create featured community content.',
+            'reward_type': 'badge',
+            'icon': 'shield-alt'
+        },
+        # Level 10
+        {
+            'level': 10,
+            'name': 'Learning Champion',
+            'description': 'Prestigious recognition with a 30-day premium membership and special profile customization options.',
+            'reward_type': 'premium',
+            'icon': 'trophy'
+        }
+    ]
+    
+    # Add rewards to the database
+    for reward_data in default_rewards:
+        reward = UserReward(**reward_data)
+        db.session.add(reward)
+    
+    db.session.commit()
+    print("Initialized default rewards system")
+
+# Add reward initialization to app startup
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create tables if they don't exist
+        initialize_rewards()  # Initialize default rewards
     app.run(debug=True) 
+
+# Helper function to handle level ups and rewards
+def handle_level_up(user, old_level):
+    """Handle level up logic and return notification message if user leveled up"""
+    if user.level > old_level:
+        # User has leveled up
+        new_level = user.level
+        notification = {
+            'type': 'level_up',
+            'title': f'Level Up! You reached level {new_level}',
+            'message': f'Congratulations! You are now level {new_level}.'
+        }
+        
+        # Check for new rewards at this level
+        new_rewards = UserReward.query.filter_by(level=new_level, is_active=True).all()
+        if new_rewards:
+            reward_names = [reward.name for reward in new_rewards]
+            notification['rewards'] = [reward.to_dict() for reward in new_rewards]
+            notification['message'] += f" You've unlocked: {', '.join(reward_names)}"
+        
+        # Store notification in session
+        if 'notifications' not in session:
+            session['notifications'] = []
+        
+        session['notifications'].append(notification)
+        return True
+    
+    return False
